@@ -52,3 +52,8 @@ the loader only produces cleaned full tables at data/interim/<dataset>.parquet.
 - 2026-11-08: white-box evasion is the primary threat model; poisoning is out of scope.
 - Open: authorship order (to be agreed in writing in docs/authorship.md).
 - Open: use original CIC-IDS2017 labels or a published corrected version.
+
+## Branching convention (agreed 2026-11-08)
+- Short-lived branches off main, named <owner>/<type>-<task>, e.g. likhith/feat-loaders, sharath/feat-split.
+- One small PR per task; the other author reviews; merge within a few days; delete the branch after merge.
+- No long-lived personal dev branches (they drift and create large, unreviewable merges).
