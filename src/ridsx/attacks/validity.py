@@ -28,6 +28,13 @@ def rules(d: pd.DataFrame) -> dict[str, pd.Series]:
         "total_len_eq_mean_x_n": pd.Series(
             np.isclose(tot, lmean * n, rtol=1e-2, atol=1.0), index=d.index),
         "active_le_total_packets": d["act_data_pkt_fwd"] <= n,
+        "iat_total_eq_mean_x_gaps": (n <= 1) | pd.Series(
+            np.isclose(d["fwd_iat_total"], imean * (n - 1), rtol=1e-2, atol=1.0), index=d.index),
+        "len_std_popoviciu": (n <= 1) | (d["fwd_packet_length_std"] <= (lmax - lmin) / 2
+                                         * np.sqrt(n / (n - 1).clip(lower=1)) + 1e-3),
+        "header_per_packet_20_60": (d["fwd_header_length"] / n).between(20, 60),
+        "min_seg_size_valid": d["min_seg_size_forward"].between(20, 60)
+                              & (d["min_seg_size_forward"] % 4 == 0),
     }
 
 
