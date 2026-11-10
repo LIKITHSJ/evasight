@@ -751,36 +751,45 @@ The original feature definitions and calculation procedures should also be check
 
 ## 10. Provisional Feature-Retention Policy
 
-The original cleaned Parquet dataset retains all 83 numeric candidate features.
+The cleaned CIC-IDS2017 Parquet dataset retains all 83 numeric candidate features. Feature-level investigations have identified several groups requiring different treatment in the primary experimental feature set.
 
-The following are provisional considerations for the primary model feature set:
+The following decisions are provisional and are based on the validation evidence documented in the preceding sections.
 
-1. Investigate mathematically or nearly redundant features.
-2. Investigate suspicious header-length fields.
-3. Investigate `total_tcp_flow_time`.
-4. Retain protocol-specific ICMP fields unless further evidence supports exclusion.
-5. Retain bulk, active, and idle features provisionally.
-6. Avoid dropping features solely because their full-dataset Spearman correlation is high.
+| Feature group | Provisional decision | Justification |
+|---|---|---|
+| ICMP Code and ICMP Type | Retain | Protocol-specific sentinel values were investigated. No evidence currently justifies excluding these features. |
+| Fwd Header Length and Bwd Header Length | Exclude from primary experiments | Negative values and a possible signed 16-bit representation issue remain unresolved. Original values will be preserved. |
+| URG flag features | Retain | Only one mismatch was identified, and it was present in the original source record. |
+| Forward and backward bulk statistics | Retain provisionally | High full-dataset correlations were strongly influenced by shared zero values. Conditional analysis showed different relationships among non-zero records. |
+| Active and idle statistics | Retain provisionally | The selected feature investigations have been completed, but final experimental suitability remains subject to the overall feature review. |
+| IAT features | Retain provisionally | The selected IAT investigations are complete. All 14 features remain provisionally retained. |
+| `total_tcp_flow_time` | Exclude from primary experiments; retain for sensitivity analysis | The inspected historical implementation defines this feature as a cumulative TCP-connection duration. However, the exact implementation and runtime configuration used to generate the improved CIC-IDS2017 dataset have not been independently verified. |
+| Other numeric candidate features | Pending final review | Their final retention decisions have not yet been approved. |
 
-The final model feature set has not yet been approved.
+Features excluded from the primary experimental set will remain unchanged in the cleaned dataset. No original feature values will be silently replaced, capped, or reconstructed as part of feature selection.
 
----
+High correlation alone will not be treated as sufficient justification for feature removal. Decisions will consider feature definitions, data distributions, protocol dependence, redundancy, source reliability, and experimental relevance.
+
+The final primary model feature set will be approved after the remaining validation and provenance checks have been completed.
 
 ## 11. Validation Limitations and Outstanding Work
 
-The detailed feature-quality investigations have covered the major identified concerns, including suspicious header-length values, protocol-specific ICMP fields, potentially redundant packet-length measurements, bulk statistics, active and idle statistics, and IAT features.
+The detailed feature-quality investigations have covered the major identified concerns, including suspicious header-length values, protocol-specific ICMP fields, potentially redundant packet-length measurements, bulk statistics, active and idle statistics, IAT features, and cumulative TCP-flow duration.
 
 The following tasks remain before CIC-IDS2017 validation can be formally closed:
 
-- Verify feature definitions and calculation procedures against authoritative dataset documentation or the upstream feature-generation implementation.
-- Investigate the unresolved source-level explanations for suspicious header-length values and `total_tcp_flow_time`.
-- Finalize the primary model feature-retention policy, including documented exclusions and features reserved for sensitivity analysis.
-- Independently verify the source archive checksum against a trusted publisher-provided value, if one is available.
-- Consolidate the validation methodology, preprocessing decisions, limitations, and reproducibility details in the final report.
+1. Verify important feature definitions and calculation procedures against authoritative dataset documentation or the relevant upstream feature-generation implementation.
+2. Investigate the unresolved source-level explanation for negative forward and backward header-length values. The observed numerical pattern is consistent with a possible signed 16-bit representation issue, but this explanation has not been independently established.
+3. Verify whether the historical CICFlowMeter implementation examined during the `total_tcp_flow_time` investigation corresponds to the exact implementation used to generate the improved CIC-IDS2017 archive.
+4. Review and approve the final primary model feature-retention policy after the remaining provenance and feature-definition checks have been completed.
+5. Independently verify the source archive checksum against a trusted publisher-provided checksum, if one is available.
+6. Consolidate the validation methodology, preprocessing decisions, limitations, provenance information, and reproducibility details in the final report.
 
 The IAT investigation is complete for the selected analyses documented in Section 9.6. All 14 IAT features are provisionally retained.
 
-The current analysis does not establish that all 83 numeric candidate features are suitable for model training. The final experimental feature set remains subject to the outstanding verification and feature-retention decisions.
+The `total_tcp_flow_time` investigation documented in Section 6.2 has established its intended cumulative-duration semantics in the inspected historical implementation. However, the exact dataset-generation version and runtime configuration remain unverified.
+
+The current analysis does not establish that all 83 numeric candidate features are suitable for model training. Final experimental feature selection remains subject to the outstanding verification tasks and approval of the feature-retention policy.
 
 ## 12. Conclusion
 
