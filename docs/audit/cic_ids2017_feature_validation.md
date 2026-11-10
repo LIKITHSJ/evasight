@@ -699,18 +699,19 @@ The final model feature set has not yet been approved.
 
 ## 11. Validation Limitations and Outstanding Work
 
-Outstanding tasks:
+The detailed feature-quality investigations have covered the major identified concerns, including suspicious header-length values, protocol-specific ICMP fields, potentially redundant packet-length measurements, bulk statistics, active and idle statistics, and IAT features.
 
-- Complete IAT feature analysis.
-- Finish the remaining high-priority redundancy checks.
-- Verify feature definitions against authoritative dataset documentation.
-- Complete the final feature-retention policy.
-- Document the final validation methodology and reproducibility details.
-- Independently verify the dataset archive checksum if a trusted publisher checksum is available.
+The following tasks remain before CIC-IDS2017 validation can be formally closed:
 
-The current analysis does not establish that all 83 features are suitable for model training.
+- Verify feature definitions and calculation procedures against authoritative dataset documentation or the upstream feature-generation implementation.
+- Investigate the unresolved source-level explanations for suspicious header-length values and `total_tcp_flow_time`.
+- Finalize the primary model feature-retention policy, including documented exclusions and features reserved for sensitivity analysis.
+- Independently verify the source archive checksum against a trusted publisher-provided value, if one is available.
+- Consolidate the validation methodology, preprocessing decisions, limitations, and reproducibility details in the final report.
 
----
+The IAT investigation is complete for the selected analyses documented in Section 9.6. All 14 IAT features are provisionally retained.
+
+The current analysis does not establish that all 83 numeric candidate features are suitable for model training. The final experimental feature set remains subject to the outstanding verification and feature-retention decisions.
 
 ## 12. Conclusion
 
