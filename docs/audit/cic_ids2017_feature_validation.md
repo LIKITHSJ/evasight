@@ -263,24 +263,93 @@ However, this investigation does not establish that integer overflow actually oc
 
 ### 6.2 `total_tcp_flow_time`
 
-The feature was compared with `flow_duration` and `protocol`.
+**Investigation objective**
 
-Results:
+The `total_tcp_flow_time` feature was investigated because its distribution contained zero values and extremely large values. The objective was to determine whether these observations represented invalid measurements, preprocessing artefacts, or behaviour consistent with the feature-generation implementation.
 
-- Total records: 2,099,971
-- TCP records (protocol 6): 1,098,771
-- Non-TCP records: 1,001,200
-- TCP records where both time features were equal: 1,027,390
-- TCP records where they differed: 71,381
-- All non-TCP records had `total_tcp_flow_time = 0`.
+**Distribution and protocol-level observations**
 
-The feature is protocol-dependent and often mirrors `flow_duration`.
+The cleaned dataset contains 2,099,971 records, comprising 1,098,771 TCP records (protocol 6) and 1,001,200 non-TCP records.
 
-Its exact source-generation formula has not been established.
+The feature contains 1,001,200 zero-valued records and 1,098,771 positive-valued records. No missing, non-finite, or negative values were observed.
 
-**Provisional decision:** Exclude `total_tcp_flow_time` from the primary experimental feature set pending further investigation. Preserve it in the cleaned dataset for sensitivity analysis.
+All non-TCP records had `total_tcp_flow_time = 0`. The non-TCP protocol distribution was:
 
----
+| Protocol | Description | Records |
+|---|---|---:|
+| 17 | UDP | 999,087 |
+| 0 | HOPOPT / IPv6 Hop-by-Hop | 1,510 |
+| 1 | ICMP | 603 |
+| **Total** | | **1,001,200** |
+
+No TCP records had a zero value.
+
+The comparison with `flow_duration` showed:
+
+- TCP records where both time features were equal: 1,027,390.
+- TCP records where the two features differed: 71,381.
+
+Although the features were equal for most TCP records, the differences required further investigation into whether `total_tcp_flow_time` represented a cumulative connection duration rather than only the duration of an individual flow.
+
+**Historical source-code investigation**
+
+The historical CICFlowMeter repository was inspected using commit `e9a987559f0e5687628b6dc385d528048c4e2312`.
+
+In this version, `FlowFeature.java` defines the feature as:
+
+`cum_tcp_time("Total TCP Flow Time", "TTFT")`
+
+The corresponding field in `BasicFlow.java` is `cumulativeTcpConnectionDuration`. It is initialized to zero and exported immediately after ICMP Code and ICMP Type.
+
+The inspected `FlowGenerator.java` implementation accumulates completed TCP flow durations. When a TCP connection continues after a flow timeout, it also adds the elapsed gap between the previous flow's last-seen timestamp and the next flow's timestamp.
+
+The source shows that the cumulative value is updated before the feature record is written to CSV:
+
+```java
+if (flow.getProtocol() == ProtocolEnum.TCP) {
+    flow = updateTcpCxnDuration(flow);
+}
+
+output.write((flow.dumpFlowBasedFeaturesEx() + LINE_SEP).getBytes());
+```
+
+Non-TCP records do not receive this update in the inspected export loop. This behaviour is consistent with the observed zero-value distribution.
+
+**Timestamp unit**
+
+The inspected IPv4 packet-reading paths in `PacketReader.java` assign packet timestamps using `timestampInMicros()`. `BasicFlow.getFlowDuration()` calculates the difference between the last-seen and start timestamps.
+
+Accordingly, the historical implementation examined here represents flow duration and cumulative TCP-flow duration in microseconds. This unit interpretation is supported for the inspected IPv4 paths and should not be generalized to every possible packet-reading path without further verification.
+
+**Extreme-value investigation**
+
+The 20 largest values observed in the cleaned dataset were all associated with TCP (protocol 6) and the BENIGN label.
+
+The maximum observed value was 30,290,439,669, while its corresponding `flow_duration` was only 3. If interpreted in microseconds, this cumulative value corresponds to approximately 8.41 hours.
+
+The historical cumulative-duration implementation provides a plausible explanation for values substantially larger than the corresponding individual `flow_duration`: the cumulative feature can include durations from preceding flow segments and the gaps between those segments.
+
+The investigated zero-valued and extreme records were also checked against the original extracted CSV files. All 15 records examined were found in their respective source files. Therefore, these values were not introduced by the Parquet loader or the preprocessing process.
+
+**Validation interpretation**
+
+The observed protocol distribution, the comparison with `flow_duration`, and the historical implementation provide evidence that `total_tcp_flow_time` is a protocol-dependent cumulative-duration feature rather than a direct duplicate of `flow_duration`.
+
+The zero values for non-TCP records are consistent with the inspected implementation. The large TCP values are also compatible with cumulative durations across multiple flow segments and their intervening gaps.
+
+However, these observations do not establish that every individual value is correct, nor do they independently establish that the inspected historical implementation was the exact version used to generate the improved CIC-IDS2017 archive.
+
+**Provisional decision**
+
+- Preserve the original `total_tcp_flow_time` values in the cleaned dataset.
+- Do not replace zero values, cap extreme values, or reconstruct cumulative durations.
+- Do not classify the feature as corrupt based solely on its distribution.
+- Provisionally exclude `total_tcp_flow_time` from the primary experimental feature set until its exact dataset-generation provenance is established.
+- Retain the feature for a possible sensitivity analysis, with its provenance limitation explicitly documented.
+
+**Limitations**
+
+The inspected historical CICFlowMeter implementation establishes the intended semantics of the feature and provides a plausible explanation for its observed distribution. However, the exact commit and runtime configuration used to generate the improved CIC-IDS2017 archive have not been independently established. The inspected source must therefore be treated as historical implementation evidence, not proof of the precise software version used for dataset generation.
 
 ## 7. Feature Schema and Candidate Feature Set
 
