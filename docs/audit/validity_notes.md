@@ -18,3 +18,19 @@ a counter-overflow glitch; to be dropped in the loader).
 - min_seg_size_valid: min_seg_size_forward in [20, 60] and divisible by 4: 0.072% violations
   (0.087% benign, 0.001% attack). Behaves as a categorical feature (values 20/32/40/24/44).
   Perturbations must switch between observed values, never nudge it continuously.
+
+## Derived-feature recompute (src/ridsx/attacks/perturb.py: recompute_derived)
+Each formula was tested against real flows before use.
+- exact (round trip 100%): average_packet_size = packet_length_mean * (n+1)/n (100%);
+  min_packet_length = min over directions that have packets (100%; the naive min fails on the
+  169,028 flows with no backward packets); flow_bytes_s, flow_packets_s, fwd_packets_s,
+  avg_fwd_segment_size, subflow_fwd_bytes, max_packet_length, flow_duration (assumption: grows
+  with the forward span).
+- packet_length_mean/average_packet_size carry an unexplained per-flow residual
+  (average_packet_size * n - total payload; mostly small constants such as 6, 2, 31, 46;
+  uncorrelated with counts or bytes). Treated as a per-flow constant (assumption).
+- stale (no exact formula): packet_length_variance and packet_length_std (pooled-variance formulas
+  match only 20-27% of flows; std == sqrt(variance) in 100%), flow_iat_* (flow_iat_max equals
+  fwd_iat_max in only 25%), active_*, idle_*. These stay at original values after perturbation.
+- Open experiment: train with and without the stale features to see whether the inconsistency is
+  detectable.
