@@ -24,3 +24,16 @@ version the paper uses.
 
 ## Not yet done
 Layer 3: tracing individual oddities back to the raw CSV files.
+
+## Layer 3: trace to raw CSV (CIC-IDS2017, 8 original MachineLearningCSV files)
+Negative values were counted in the raw CSVs before any cleaning. Every raw count is equal to or
+higher than the cleaned-Parquet count, so the loader did not introduce them; the difference is
+rows removed by Inf/NaN filtering and deduplication.
+- Flow Duration 115 (cleaned 107), Flow Bytes/s 85 (78), Flow Packets/s 115 (107),
+  Flow IAT Min 2,891 (2,880), Fwd IAT Min 17 (17), Fwd Header Length 35 (35),
+  Bwd Header Length 22 (22), min_seg_size_forward 35 (35).
+- Fwd Header Length and min_seg_size_forward are negative on the same 35 rows (first source lines:
+  Monday 149, Tuesday 285, Wednesday 513120): one extraction fault affects both fields.
+- Timing negatives occur in all eight files; Flow IAT Min is the most affected.
+- Cause not inspected. Decision: report the counts as extraction-tool artifacts and drop these
+  rows in a later loader update.
