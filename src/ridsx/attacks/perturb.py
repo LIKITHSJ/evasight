@@ -30,3 +30,32 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
         out[c] = d[c] + t
     out["fwd_iat_total"] = d["fwd_iat_total"] + t * (n - 1)
     return out
+
+
+def recompute_derived(orig: pd.DataFrame, pert: pd.DataFrame) -> pd.DataFrame:
+    """Update features derived from the forward block after perturb(); backward side untouched.
+
+    Assumptions (to state in the paper): the unexplained per-flow residual in
+    average_packet_size is constant under perturbation; flow_duration grows by the growth
+    of the forward span.
+    """
+    o, out = orig, pert.copy()
+    nf, nb = o["total_fwd_packets"], o["total_backward_packets"]
+    n = nf + nb
+    lf, lb = pert["total_length_of_fwd_packets"], o["total_length_of_bwd_packets"]
+    resid = o["average_packet_size"] * n - (o["total_length_of_fwd_packets"] + lb)
+    out["average_packet_size"] = (lf + lb + resid) / n
+    out["packet_length_mean"] = out["average_packet_size"] * n / (n + 1)
+    dur = o["flow_duration"] + (pert["fwd_iat_total"] - o["fwd_iat_total"])
+    sec = dur / 1e6
+    out["flow_duration"] = dur
+    out["flow_bytes_s"] = (lf + lb) / sec
+    out["flow_packets_s"] = n / sec
+    out["fwd_packets_s"] = nf / sec
+    out["avg_fwd_segment_size"] = pert["fwd_packet_length_mean"]
+    out["subflow_fwd_bytes"] = lf
+    out["max_packet_length"] = np.maximum(pert["fwd_packet_length_max"], o["bwd_packet_length_max"])
+    out["min_packet_length"] = np.minimum(
+        np.where(nf > 0, pert["fwd_packet_length_min"], 1e9),
+        np.where(nb > 0, o["bwd_packet_length_min"], 1e9))
+    return out
