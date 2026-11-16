@@ -1,0 +1,31 @@
+{
+  "dataset": "cic_ids2018",
+  "benign_frac_kept": 0.1,
+  "seed": 42,
+  "rows_read": 16233002,
+  "repeated_header_rows": 59,
+  "inf_nan_rows_removed": 95760,
+  "benign_valid_rows": 13390249,
+  "attack_valid_rows": 2746934,
+  "duplicates_removed": 1598383,
+  "rows_written": 2486278,
+  "label_counts": {
+    "BENIGN": 1135475,
+    "DDoS attacks-LOIC-HTTP": 575012,
+    "DDOS attack-HOIC": 198861,
+    "DoS attacks-Hulk": 145199,
+    "Bot": 144535,
+    "Infilteration": 139341,
+    "SSH-Bruteforce": 94048,
+    "DoS attacks-GoldenEye": 41392,
+    "DoS attacks-Slowloris": 9712,
+    "DDOS attack-LOIC-UDP": 1730,
+    "Brute Force -Web": 553,
+    "Brute Force -XSS": 228,
+    "SQL Injection": 84,
+    "DoS attacks-SlowHTTPTest": 55,
+    "FTP-BruteForce": 53
+  },
+  "natural_attack_rate": 0.17022388604008518,
+  "attack_rate_in_output": 0.54330328306006
+}

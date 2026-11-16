@@ -1,0 +1,25 @@
+{
+  "dataset": "unsw_nb15",
+  "inf_nan_rows_removed": 0,
+  "categorical_features": [
+    "proto",
+    "service",
+    "state"
+  ],
+  "rows_raw": 257673,
+  "rows_after_dedup": 162745,
+  "duplicates_removed": 94928,
+  "label_counts": {
+    "BENIGN": 85722,
+    "Exploits": 27434,
+    "Fuzzers": 20960,
+    "Reconnaissance": 9991,
+    "Generic": 7599,
+    "DoS": 5500,
+    "Analysis": 2032,
+    "Backdoor": 1880,
+    "Shellcode": 1456,
+    "Worms": 171
+  },
+  "attack_rate": 0.47327414052659067
+}
