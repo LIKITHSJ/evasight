@@ -53,7 +53,10 @@ def recompute_derived(orig: pd.DataFrame, pert: pd.DataFrame) -> pd.DataFrame:
     out["flow_packets_s"] = n / sec
     out["fwd_packets_s"] = nf / sec
     out["avg_fwd_segment_size"] = pert["fwd_packet_length_mean"]
-    out["subflow_fwd_bytes"] = lf
+    # Improved release: subflow_fwd_bytes != total fwd bytes (often 0, ~15x smaller otherwise).
+    # Assumption: it scales in proportion to total forward bytes; zeros stay zero.
+    ratio = lf / o["total_length_of_fwd_packets"].where(lambda s: s > 0)
+    out["subflow_fwd_bytes"] = (o["subflow_fwd_bytes"] * ratio).fillna(o["subflow_fwd_bytes"])
     out["max_packet_length"] = np.maximum(pert["fwd_packet_length_max"], o["bwd_packet_length_max"])
     out["min_packet_length"] = np.minimum(
         np.where(nf > 0, pert["fwd_packet_length_min"], 1e9),
