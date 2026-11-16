@@ -12,7 +12,8 @@ CANON = {"total_fwd_packet": "total_fwd_packets", "total_bwd_packets": "total_ba
          "total_length_of_bwd_packet": "total_length_of_bwd_packets",
          "fwd_segment_size_avg": "avg_fwd_segment_size",
          "packet_length_max": "max_packet_length", "packet_length_min": "min_packet_length",
-         "fwd_act_data_pkts": "act_data_pkt_fwd"}
+         "fwd_act_data_pkts": "act_data_pkt_fwd",
+         "fwd_init_win_bytes": "init_win_bytes_forward", "fwd_seg_size_min": "min_seg_size_forward"}
 
 
 def canon(df: pd.DataFrame) -> pd.DataFrame:
