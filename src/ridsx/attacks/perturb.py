@@ -6,6 +6,18 @@ import pandas as pd
 
 MSS = 1460.0  # max TCP payload per packet on Ethernet
 
+# Improved CIC-IDS2017 column names -> canonical names used by the attack code.
+CANON = {"total_fwd_packet": "total_fwd_packets", "total_bwd_packets": "total_backward_packets",
+         "total_length_of_fwd_packet": "total_length_of_fwd_packets",
+         "total_length_of_bwd_packet": "total_length_of_bwd_packets",
+         "fwd_segment_size_avg": "avg_fwd_segment_size",
+         "packet_length_max": "max_packet_length", "packet_length_min": "min_packet_length",
+         "fwd_act_data_pkts": "act_data_pkt_fwd"}
+
+
+def canon(df: pd.DataFrame) -> pd.DataFrame:
+    return df.rename(columns=CANON)
+
 
 def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     """Return a perturbed copy of d (float64 CIC-IDS2017 columns).
@@ -18,12 +30,17 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     out = d.copy()
     n = d["total_fwd_packets"]
 
-    p = np.floor(np.asarray(a_pad) * eps * d["fwd_packet_length_mean"])
+    k = d["act_data_pkt_fwd"]  # forward packets that carry payload; SYN/ACK stay empty
+    lf = d["total_length_of_fwd_packets"]
+    # Budget: eps * mean payload of a data packet; capped so no packet exceeds the MSS.
+    p = np.floor(np.asarray(a_pad) * eps * lf / k.where(k > 0))
     p = np.minimum(p, np.maximum(MSS - d["fwd_packet_length_max"], 0))
-    p = np.where(d["fwd_packet_length_min"] > 0, p, 0.0)
-    for c in ("fwd_packet_length_min", "fwd_packet_length_mean", "fwd_packet_length_max"):
-        out[c] = d[c] + p
-    out["total_length_of_fwd_packets"] = d["total_length_of_fwd_packets"] + p * n
+    p = np.nan_to_num(np.asarray(p, dtype=float))  # k == 0 -> no payload -> no padding
+    lf_new = lf + p * k
+    out["total_length_of_fwd_packets"] = lf_new
+    out["fwd_packet_length_mean"] = lf_new / n
+    out["fwd_packet_length_max"] = d["fwd_packet_length_max"] + p
+    out["fwd_packet_length_min"] = d["fwd_packet_length_min"] + np.where(k == n, p, 0.0)
 
     t = np.where(n > 1, np.asarray(a_delay) * eps * d["fwd_iat_mean"], 0.0)
     for c in ("fwd_iat_mean", "fwd_iat_min", "fwd_iat_max"):
