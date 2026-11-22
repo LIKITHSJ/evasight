@@ -21,8 +21,8 @@ Constraints: everything free; MacBook Air M2, 8 GB RAM (chunked reads, float32, 
 ## Ownership
 | Area | Owner | Folders |
 |---|---|---|
-| Threat model, feature controllability, data audit and cleaning, attacks, validity checker | Likhith | docs/threat_model.md, src/ridsx/data, src/ridsx/attacks |
-| Splits, models, SHAP/LIME, stability metrics, evasion detector, statistics | Sharath | src/ridsx/models, src/ridsx/explain, src/ridsx/eval |
+| Threat model, feature controllability, data audit and cleaning, attacks, validity checker | Likhith | docs/threat_model.md, src/evasight/data, src/evasight/attacks |
+| Splits, models, SHAP/LIME, stability metrics, evasion detector, statistics | Sharath | src/evasight/models, src/evasight/explain, src/evasight/eval |
 | Configs, paper, cross-review | Both | configs/, paper/ |
 
 ## Working agreement

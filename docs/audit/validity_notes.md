@@ -1,5 +1,5 @@
 # Validity-rule calibration (CIC-IDS2017, cleaned data, 2,497,980 flows)
-Rules in src/ridsx/attacks/validity.py were run on real flows; violation rates (%):
+Rules in src/evasight/attacks/validity.py were run on real flows; violation rates (%):
 all rules 0.000 except nonneg_counts 0.001 (35 flows with negative fwd_header_length,
 a counter-overflow glitch; to be dropped in the loader).
 
@@ -19,7 +19,7 @@ a counter-overflow glitch; to be dropped in the loader).
   (0.087% benign, 0.001% attack). Behaves as a categorical feature (values 20/32/40/24/44).
   Perturbations must switch between observed values, never nudge it continuously.
 
-## Derived-feature recompute (src/ridsx/attacks/perturb.py: recompute_derived)
+## Derived-feature recompute (src/evasight/attacks/perturb.py: recompute_derived)
 Each formula was tested against real flows before use.
 - exact (round trip 100%): average_packet_size = packet_length_mean * (n+1)/n (100%);
   min_packet_length = min over directions that have packets (100%; the naive min fails on the

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ridsx.attacks.perturb import MSS, perturb, recompute_derived
+from evasight.attacks.perturb import MSS, perturb, recompute_derived
 
 COLS = ["total_fwd_packets", "act_data_pkt_fwd", "total_backward_packets",
         "total_length_of_fwd_packets", "total_length_of_bwd_packets",

@@ -31,7 +31,7 @@ def test_labels_consistent_with_attack_cat(parts):
 
 
 def test_test_strictly_later_than_train_per_class():
-    from ridsx.data.split import META, PARQ
+    from evasight.data.split import META, PARQ
     meta = pd.read_parquet(META)
     df = pd.read_parquet(PARQ, columns=["label", "attack_cat", "source"])
     grp = np.where(df["label"] == 1, df["attack_cat"].astype(str), "BENIGN|" + df["source"].astype(str))
