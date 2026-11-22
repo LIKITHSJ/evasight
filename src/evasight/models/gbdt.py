@@ -12,7 +12,8 @@ from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_s
 
 D = Path("data/processed/cic_ids2017_improved")
 OUT = Path("artifacts")
-EXCLUDE = {"label", "attack_cat", "fwd_header_length", "bwd_header_length"}  # header: negative values, see audit
+from evasight.data.split import NON_FEATURE  # label, attack_cat and metadata (source, attempted_category)
+EXCLUDE = NON_FEATURE | {"fwd_header_length", "bwd_header_length"}  # header: negative values, see audit
 
 
 def ece(y: np.ndarray, p: np.ndarray, bins: int = 15) -> float:
