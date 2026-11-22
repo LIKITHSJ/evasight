@@ -13,9 +13,9 @@ NON_FEATURE = {"label", "attempted_category", "attack_cat", "source"}
 
 
 def build(frac: tuple[float, float] = (0.70, 0.85), gap_s: float = 60.0, gap_span: float = 0.02,
-          max_purge: float = 0.01):
-    df = pd.read_parquet(PARQ)
-    meta = pd.read_parquet(META)
+          max_purge: float = 0.01, parq: Path = PARQ, meta_path: Path = META, out_dir: Path = OUT):
+    df = pd.read_parquet(parq)
+    meta = pd.read_parquet(meta_path)
     assert len(df) == len(meta) and (df["source"].to_numpy() == meta["source"].to_numpy()).all()
     feats = [c for c in df.columns if c not in NON_FEATURE]
     X = df[feats].astype("float32")
@@ -59,13 +59,13 @@ def build(frac: tuple[float, float] = (0.70, 0.85), gap_s: float = 60.0, gap_spa
         sp[pos] = np.where(t >= c2, 2,
                            np.where(t >= c1, np.where(near2, -1, 1), np.where(near1, -1, 0)))
 
-    OUT.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
     for i, name in enumerate(("train", "val", "test")):
         rows = idx[sp == i]
         out = X.iloc[rows].copy()
         out["label"] = y[rows]
         out["attack_cat"] = cat[rows]
-        out.to_parquet(OUT / f"{name}.parquet", index=False)
+        out.to_parquet(out_dir / f"{name}.parquet", index=False)
 
     rep = pd.crosstab(cat[idx], np.where(sp < 0, "purged", np.array(["train", "val", "test"])[sp.clip(0)]))
     print(rep[[c for c in ("train", "val", "test", "purged") if c in rep]].to_string())
@@ -74,4 +74,10 @@ def build(frac: tuple[float, float] = (0.70, 0.85), gap_s: float = 60.0, gap_spa
 
 
 if __name__ == "__main__":
-    build()
+    import sys
+    if sys.argv[1:] == ["cic2018"]:
+        build(parq=Path("data/interim/cic_ids2018_v2.parquet"),
+              meta_path=Path("data/interim/cic_ids2018_v2_splitmeta.parquet"),
+              out_dir=Path("data/processed/cic_ids2018"))
+    else:
+        build()
