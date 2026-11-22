@@ -1,0 +1,84 @@
+feature,source_name,class_suggested,rationale,class_final,notes,recompute_status
+dst_port,dst_port,fixed,service chosen by the attack; changing it changes the target,fixed,service targeted by the attack,
+protocol,protocol,fixed,transport protocol is part of the attack itself,fixed,,
+flow_duration,flow_duration,derived,computed from other features; recompute after perturbation,derived,mixes forward timing with flow termination by either side,exact
+total_fwd_packets,total_fwd_packet,free,set by the attacker's own forward packets,free,,
+total_backward_packets,total_bwd_packets,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+total_length_of_fwd_packets,total_length_of_fwd_packet,free,set by the attacker's own forward packets,free,,
+total_length_of_bwd_packets,total_length_of_bwd_packet,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+fwd_packet_length_max,fwd_packet_length_max,free,set by the attacker's own forward packets,free,,
+fwd_packet_length_min,fwd_packet_length_min,free,set by the attacker's own forward packets,free,,
+fwd_packet_length_mean,fwd_packet_length_mean,free,set by the attacker's own forward packets,free,,
+fwd_packet_length_std,fwd_packet_length_std,free,set by the attacker's own forward packets,free,,
+bwd_packet_length_max,bwd_packet_length_max,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_packet_length_min,bwd_packet_length_min,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_packet_length_mean,bwd_packet_length_mean,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_packet_length_std,bwd_packet_length_std,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+flow_bytes_s,flow_bytes_s,derived,computed from other features; recompute after perturbation,derived,,exact
+flow_packets_s,flow_packets_s,derived,computed from other features; recompute after perturbation,derived,,exact
+flow_iat_mean,flow_iat_mean,derived,computed from other features; recompute after perturbation,derived,,stale
+flow_iat_std,flow_iat_std,derived,computed from other features; recompute after perturbation,derived,,stale
+flow_iat_max,flow_iat_max,derived,computed from other features; recompute after perturbation,derived,,stale
+flow_iat_min,flow_iat_min,derived,computed from other features; recompute after perturbation,derived,,stale
+fwd_iat_total,fwd_iat_total,free,set by the attacker's own forward packets,free,,
+fwd_iat_mean,fwd_iat_mean,free,set by the attacker's own forward packets,free,,
+fwd_iat_std,fwd_iat_std,free,set by the attacker's own forward packets,free,,
+fwd_iat_max,fwd_iat_max,free,set by the attacker's own forward packets,free,,
+fwd_iat_min,fwd_iat_min,free,set by the attacker's own forward packets,free,,
+bwd_iat_total,bwd_iat_total,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_iat_mean,bwd_iat_mean,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_iat_std,bwd_iat_std,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_iat_max,bwd_iat_max,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+bwd_iat_min,bwd_iat_min,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+fwd_psh_flags,fwd_psh_flags,fixed,TCP flag semantics define the attack behaviour,fixed,flag semantics define attack behaviour,
+bwd_psh_flags,bwd_psh_flags,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+fwd_urg_flags,fwd_urg_flags,fixed,TCP flag semantics define the attack behaviour,fixed,flag semantics define attack behaviour,
+bwd_urg_flags,bwd_urg_flags,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+fwd_rst_flags,fwd_rst_flags,fixed,TCP flag semantics define the attack behaviour,fixed,,
+bwd_rst_flags,bwd_rst_flags,fixed,backward direction is produced by the victim,fixed,,
+fwd_header_length,fwd_header_length,free,set by the attacker's own forward packets,free,attacker can add TCP/IP options; bounded by protocol limits,
+bwd_header_length,bwd_header_length,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+fwd_packets_s,fwd_packets_s,derived,computed from other features; recompute after perturbation,derived,,exact
+bwd_packets_s,bwd_packets_s,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+min_packet_length,packet_length_min,derived,computed from other features; recompute after perturbation,derived,,exact
+max_packet_length,packet_length_max,derived,computed from other features; recompute after perturbation,derived,,exact
+packet_length_mean,packet_length_mean,derived,computed from other features; recompute after perturbation,derived,,exact
+packet_length_std,packet_length_std,derived,computed from other features; recompute after perturbation,derived,,stale
+packet_length_variance,packet_length_variance,derived,computed from other features; recompute after perturbation,derived,,stale
+fin_flag_count,fin_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+syn_flag_count,syn_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+rst_flag_count,rst_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+psh_flag_count,psh_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+ack_flag_count,ack_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+urg_flag_count,urg_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+cwr_flag_count,cwr_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,renamed from cwe_flag_count; equivalence not confirmed (decision register 4.2),
+ece_flag_count,ece_flag_count,fixed,TCP flag semantics define the attack behaviour,fixed,,
+down_up_ratio,down_up_ratio,derived,computed from other features; recompute after perturbation,derived,depends on backward bytes the victim controls,unchanged
+average_packet_size,average_packet_size,derived,computed from other features; recompute after perturbation,derived,,exact
+avg_fwd_segment_size,fwd_segment_size_avg,derived,computed from other features; recompute after perturbation,derived,,exact
+bwd_segment_size_avg,bwd_segment_size_avg,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+fwd_bytes_bulk_avg,fwd_bytes_bulk_avg,derived,computed from other features; recompute after perturbation,derived,REVIEW: non-zero in Improved release; pad/delay may change it but it is not recomputed,constant
+fwd_packet_bulk_avg,fwd_packet_bulk_avg,derived,computed from other features; recompute after perturbation,derived,REVIEW: non-zero in Improved release; pad/delay may change it but it is not recomputed,constant
+fwd_bulk_rate_avg,fwd_bulk_rate_avg,derived,computed from other features; recompute after perturbation,derived,REVIEW: non-zero in Improved release; pad/delay may change it but it is not recomputed,constant
+bwd_bytes_bulk_avg,bwd_bytes_bulk_avg,fixed,"backward direction is produced by the victim, not the attacker",fixed,victim-side; padding and delay act on forward packets only,
+bwd_packet_bulk_avg,bwd_packet_bulk_avg,fixed,"backward direction is produced by the victim, not the attacker",fixed,victim-side; padding and delay act on forward packets only,
+bwd_bulk_rate_avg,bwd_bulk_rate_avg,fixed,"backward direction is produced by the victim, not the attacker",fixed,victim-side; padding and delay act on forward packets only,
+subflow_fwd_packets,subflow_fwd_packets,derived,computed from other features; recompute after perturbation,derived,,unchanged
+subflow_fwd_bytes,subflow_fwd_bytes,derived,computed from other features; recompute after perturbation,derived,,exact
+subflow_bwd_packets,subflow_bwd_packets,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+subflow_bwd_bytes,subflow_bwd_bytes,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+init_win_bytes_forward,fwd_init_win_bytes,free,set by the attacker's own forward packets,free,set by the attacker's own TCP stack,
+bwd_init_win_bytes,bwd_init_win_bytes,fixed,"backward direction is produced by the victim, not the attacker",fixed,,
+act_data_pkt_fwd,fwd_act_data_pkts,free,set by the attacker's own forward packets,free,,
+min_seg_size_forward,fwd_seg_size_min,free,set by the attacker's own forward packets,free,follows the MSS option the attacker sends,
+active_mean,active_mean,derived,computed from other features; recompute after perturbation,derived,,stale
+active_std,active_std,derived,computed from other features; recompute after perturbation,derived,,stale
+active_max,active_max,derived,computed from other features; recompute after perturbation,derived,,stale
+active_min,active_min,derived,computed from other features; recompute after perturbation,derived,,stale
+idle_mean,idle_mean,derived,computed from other features; recompute after perturbation,derived,,stale
+idle_std,idle_std,derived,computed from other features; recompute after perturbation,derived,,stale
+idle_max,idle_max,derived,computed from other features; recompute after perturbation,derived,,stale
+idle_min,idle_min,derived,computed from other features; recompute after perturbation,derived,,stale
+icmp_code,icmp_code,fixed,ICMP semantics define the behaviour; sentinel value for TCP/UDP,fixed,,
+icmp_type,icmp_type,fixed,ICMP semantics define the behaviour; sentinel value for TCP/UDP,fixed,,
+total_tcp_flow_time,total_tcp_flow_time,derived,"timing feature; excluded from model, see feature_validation sec 10",derived,excluded from model features (feature_validation sec 10); not recomputed,
