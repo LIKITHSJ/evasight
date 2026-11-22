@@ -18,7 +18,7 @@ CIC-IDS2017, CSE-CIC-IDS2018, UNSW-NB15. Integrity hashes are in `docs/checksums
 
 ## Repository layout
 - `docs/` threat model, figures, audit notes, project status (`docs/STATUS.md`)
-- `src/ridsx/` code (the Python package keeps its working name `ridsx` for now)
+- `src/evasight/` code (the Python package keeps its working name `evasight` for now)
 - `configs/` feature controllability table and experiment configs
 
 ## Setup

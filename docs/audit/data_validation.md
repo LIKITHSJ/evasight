@@ -1,4 +1,4 @@
-# Independent validation of cleaned datasets (src/ridsx/data/validate.py)
+# Independent validation of cleaned datasets (src/evasight/data/validate.py)
 Result: PASS on cic_ids2017 (2,497,980 rows), unsw_nb15 (162,745), cic_ids2018 (2,486,278).
 Hard checks: row/class counts match loader audits; no NaN/Inf; label == (attack_cat != BENIGN);
 zero duplicate rows; all numeric features float32.

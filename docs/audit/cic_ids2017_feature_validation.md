@@ -69,7 +69,7 @@ The original attack category is preserved separately as `attack_cat`.
 
 The preprocessing implementation is:
 
-`src/ridsx/data/loader_cic2017_improved.py`
+`src/evasight/data/loader_cic2017_improved.py`
 
 Processing characteristics:
 

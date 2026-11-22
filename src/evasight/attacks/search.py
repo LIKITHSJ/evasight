@@ -7,8 +7,8 @@ from collections.abc import Callable
 import numpy as np
 import pandas as pd
 
-from ridsx.attacks.perturb import perturb, recompute_derived
-from ridsx.attacks.validity import rules
+from evasight.attacks.perturb import perturb, recompute_derived
+from evasight.attacks.validity import rules
 
 LEVELS = (0.0, 0.25, 0.5, 0.75, 1.0)
 

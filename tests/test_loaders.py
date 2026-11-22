@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ridsx.data.loaders import _clean_label, _snake
+from evasight.data.loaders import _clean_label, _snake
 
 
 def test_snake_strips_spaces_and_symbols():
