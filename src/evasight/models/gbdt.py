@@ -14,6 +14,7 @@ D = Path("data/processed/cic_ids2017_improved")
 OUT = Path("artifacts")
 from evasight.data.split import NON_FEATURE  # label, attack_cat and metadata (source, attempted_category)
 EXCLUDE = NON_FEATURE | {"fwd_header_length", "bwd_header_length",  # negative values, see audit
+                         "fwd_header_len", "bwd_header_len",  # same fields, CSE-CIC-IDS2018 names
                          "total_tcp_flow_time"}  # unknown provenance, feature_validation.md sec 10
 
 
@@ -27,8 +28,8 @@ def tpr_at_fpr(y, p, fpr_t=0.01) -> float:
     return float(np.interp(fpr_t, fpr, tpr))
 
 
-def main(seed: int = 0) -> None:
-    tr, va, te = (pd.read_parquet(D / f"{s}.parquet") for s in ("train", "val", "test"))
+def main(seed: int = 0, data: Path = D, tag: str = "xgb_improved") -> None:
+    tr, va, te = (pd.read_parquet(data / f"{s}.parquet") for s in ("train", "val", "test"))
     feats = [c for c in tr.columns if c not in EXCLUDE and tr[c].nunique() > 1]
     print(f"features used: {len(feats)} | train {len(tr):,} val {len(va):,} test {len(te):,}")
 
@@ -57,10 +58,14 @@ def main(seed: int = 0) -> None:
     print(per.sort_values("n_test", ascending=False).to_string())
 
     OUT.mkdir(exist_ok=True)
-    clf.save_model(OUT / "xgb_improved.json")
-    joblib.dump({"iso": iso, "feats": feats}, OUT / "xgb_improved_cal.joblib")
-    print("\nsaved to artifacts/")
+    clf.save_model(OUT / f"{tag}.json")
+    joblib.dump({"iso": iso, "feats": feats}, OUT / f"{tag}_cal.joblib")
+    print(f"\nsaved to artifacts/{tag}*")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if sys.argv[1:] == ["cic2018"]:
+        main(data=Path("data/processed/cic_ids2018"), tag="xgb_cic2018")
+    else:
+        main()
