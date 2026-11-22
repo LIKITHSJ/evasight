@@ -1,5 +1,5 @@
 # Project status and handoff
-Last updated: 2026-11-22 by Likhith. Update this file at the end of every work session.
+Last updated: 2026-11-23 by Likhith. Update this file at the end of every work session.
 
 ## Project
 Adversarially robust and explainable network intrusion detection (NIDS), co-authored by
@@ -62,14 +62,26 @@ XGBoost baseline). Both are in your area. Please review them, then change or rep
 - Almost all evasions that need pad and delay combined are DDoS; evasion runs mainly via fwd_iat_min and average_packet_size.
 - SHAP instability did not separate evaded from non-evaded flows (AUC about 0.52). Inconclusive, because the dev model was overconfident.
 
-## Attack results, v2 baseline (test split, calibrated, delay caps on)
-Evasion = evaded / detected attacks (60,083 detected of 60,309).
-eps 0.1: 61 (0.10%) | eps 0.25: 72 (0.12%) | eps 0.5: 82 (0.14%) | eps 1.0: 109 (0.18%).
-Most evasions are DoS Slowhttptest (12% at eps 1.0). Web attack classes have 2 to 11 test flows, too few to report.
-Old adv_*/shap_* files in artifacts/ came from v1 and are out of date; use artifacts/v2/.
+## Datasets ready for ML (2026-11-23)
+All three: leak-aware split (conflicting-label vectors dropped, feature dedup, no vector in two partitions), calibrated XGBoost baseline, constraint-respecting attack. Files are shared as bundles, not in git; verify with shasum -a 256 -c on the checksum file.
+
+| Dataset | Split | Baseline (calibrated) | Evasion eps 0.1 / 1.0 | Bundle / checksums |
+|---|---|---|---|---|
+| CIC-IDS2017 Improved | per-class time blocks 70/15/15 | 79 feats, AUC 0.9988, benign FPR 0.002% | 55 / 99 of 60,083 (0.09% / 0.16%) | cic2017 v2 bundle, docs/checksums_cic2017_v2.txt; v3 attack in the 2018+UNSW bundle |
+| CSE-CIC-IDS2018 | per-class time blocks 70/15/15 | 68 feats, AUC 0.9839, benign FPR 2.01% | 802 / 1,358 of 183,487 (0.44% / 0.74%) | 2018+UNSW bundle, docs/checksums_2018_unsw_v1.txt |
+| UNSW-NB15 | official train/test; val = hashed 15% of train | 42 feats, AUC 0.9661, benign FPR 25.4% | attack not built yet | 2018+UNSW bundle |
+
+Commands: split `python -m evasight.data.split [cic2018|unsw]`, train `python -m evasight.models.gbdt [cic2018|unsw]`, attack `python -u scripts/run_attack.py --data <test.parquet> --tag <xgb_tag> --out <dir>`.
+
+Notes for the ML side:
+- 2017: use artifacts/v3 attack results (flows with forward bulk activity are not perturbed); v2 overstated slow DoS evasion.
+- 2018: raw timestamps use a 12-hour clock without AM/PM, fixed in the loader (hours 1-7 are PM, checked against the published schedule). Infilteration recall is 0.26 (known label noise); report with and without it. Isotonic calibration raised ECE (0.014 to 0.024).
+- UNSW: the official test set differs from train, so benign FPR at 0.5 is 25%; threshold and calibration need care. proto/service/state are integer codes (data/processed/unsw_nb15/category_codes.json). Official split sizes after the loader's dedup: train 107,740, test 55,005 (the decision register's 106,800/55,945 swaps the 940 cross-split duplicates).
+- Tiny classes (2017 web attacks, 2018 SlowHTTPTest and FTP, UNSW Worms) are too small to report per class.
 
 ## Next
-- Likhith: decide with Sharath how to evaluate the instability detector with only 109 evasions. Proposal: keep the 109 as the headline and add a near-evasion analysis (does instability grow with the score drop).
+- Likhith: UNSW attack (controllability table, perturbation for Argus features, validity rules). Measured so far: rate = (spkts+dpkts-1)/dur, sload/dload = bytes*8*(pkts-1)/pkts/dur, smean = round(sbytes/spkts), flow timeout 60 s.
+- Both: instability detector evaluation. 2017 has 99 evasions, 2018 has 1,358; add a near-evasion analysis (does instability grow with the score drop).
 - Sharath: review split.py and gbdt.py; MLP baseline; LIME next to SHAP; incremental test (does instability add information beyond the raw model score).
 - Both: agree authorship order in docs/authorship.md.
 - Not started: evaluation statistics, paper.
@@ -86,6 +98,7 @@ the loader only produces cleaned full tables at data/interim/<dataset>.parquet.
 - 2026-11-17: CIC-IDS2017 Improved release adopted (the original release has all-zero bulk features).
 - 2026-11-22: package renamed ridsx to evasight (PR #13).
 - 2026-11-22: baseline v2 drops total_tcp_flow_time. Raw AUC 1.000, calibrated AUC 0.9988; calibration slightly lowers every metric, worth a look.
+- 2026-11-23: all three datasets split and baselined; 2018 and UNSW bundle shared.
 - Open: dataset decision register (PR #17), changes requested. Attempted rows and dedup policy to agree.
 - Open: authorship order (to be agreed in writing in docs/authorship.md).
 
