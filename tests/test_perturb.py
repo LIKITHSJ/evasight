@@ -24,7 +24,11 @@ def flows():
         [4, 4, 1, 5600,  100, 1300, 1400, 1450, 0,  60,  800,  50, 2000, 2400,  4000, 5700 / 5,  0, 900, 0, 0, 0, 1400, 1450, 0],   # D: near MSS
         [1, 1, 1,  100,   50,  100, 100,  100, 0,  50,    0,   0,    0,    0,  1000, 150 / 2,   0,  75, 0, 0, 0, 100, 100, 0],   # E: single pkt
     ]
-    return pd.DataFrame(rows, columns=COLS, dtype="float64")
+    df = pd.DataFrame(rows, columns=COLS, dtype="float64")
+    # Flow-level gaps reuse the forward gaps; all are far below the 5 s activity
+    # timeout, so the delay caps never bind in these fixture tests.
+    df["flow_iat_min"], df["flow_iat_max"] = df["fwd_iat_min"], df["fwd_iat_max"]
+    return df
 
 
 @pytest.mark.parametrize("eps", [0.1, 0.5, 1.0])
@@ -69,3 +73,25 @@ def test_subflow_bytes_scales_and_zero_stays_zero(flows):
     r = recompute_derived(flows, p)
     assert r.loc[0, "subflow_fwd_bytes"] == pytest.approx(100 * 1350 / 900)
     assert (r.loc[flows["subflow_fwd_bytes"] == 0, "subflow_fwd_bytes"] == 0).all()
+
+
+def test_delay_respects_cicflowmeter_timeouts():
+    from evasight.attacks.perturb import ACTIVITY_TIMEOUT_US as A, FLOW_TIMEOUT_US as F
+    # rows: normal, near activity timeout, mixed active/idle, all idle near flow timeout
+    d = pd.DataFrame({
+        "total_fwd_packets":           [5, 5, 5, 3],
+        "act_data_pkt_fwd":            [0, 0, 0, 0],
+        "total_length_of_fwd_packets": [0., 0, 0, 0],
+        "fwd_packet_length_max":       [0., 0, 0, 0],
+        "fwd_packet_length_min":       [0., 0, 0, 0],
+        "fwd_packet_length_mean":      [0., 0, 0, 0],
+        "fwd_iat_mean":                [500., 1e6, 1e6, 6.5e6],
+        "fwd_iat_min":                 [100., 10, 10, 6e6],
+        "fwd_iat_max":                 [1000., A - 1000, 6e6, 7e6],
+        "fwd_iat_total":               [2000., 4e6, 4e6, 13e6],
+        "flow_iat_min":                [100., 10, 10, 6e6],
+        "flow_iat_max":                [1000., A - 1000, 6e6, 7e6],
+        "flow_duration":               [5000., 6e6, 2e7, F - 100_000],
+    })
+    t = (perturb(d, 0.0, 1.0, 1.0)["fwd_iat_max"] - d["fwd_iat_max"]).to_numpy()
+    np.testing.assert_array_equal(t, [500, 1000, 0, 50_000])

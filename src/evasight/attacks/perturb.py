@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 
 MSS = 1460.0  # max TCP payload per packet on Ethernet
+FLOW_TIMEOUT_US = 120_000_000  # CICFlowMeter splits longer flows (measured: max flow_duration)
+ACTIVITY_TIMEOUT_US = 5_000_000  # a gap above this counts as idle (measured: min nonzero idle_min)
 
 # Improved CIC-IDS2017 column names -> canonical names used by the attack code.
 CANON = {"total_fwd_packet": "total_fwd_packets", "total_bwd_packets": "total_backward_packets",
@@ -24,8 +26,11 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     """Return a perturbed copy of d (float64 CIC-IDS2017 columns).
 
     a_pad, a_delay in [0, 1] (scalar or per-flow array); eps is the relative budget.
-    pad:   +p bytes on every forward packet (only when every packet carries payload).
-    delay: +t on every forward inter-arrival gap (only for flows with >= 2 packets).
+    pad:   +p bytes on every forward packet (only when every packet carries payload),
+           capped so no packet exceeds the MSS.
+    delay: +t on every forward inter-arrival gap (only for flows with >= 2 packets),
+           capped so the flow stays within the CICFlowMeter flow timeout and no gap
+           crosses the activity timeout (which would change active_*/idle_*).
     Derived relationships stay exact by construction.
     """
     out = d.copy()
@@ -43,10 +48,19 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     out["fwd_packet_length_max"] = d["fwd_packet_length_max"] + p
     out["fwd_packet_length_min"] = d["fwd_packet_length_min"] + np.where(k == n, p, 0.0)
 
-    t = np.where(n > 1, np.asarray(a_delay) * eps * d["fwd_iat_mean"], 0.0)
+    nn = n.to_numpy(dtype=float)
+    t = np.where(nn > 1, np.asarray(a_delay) * eps * d["fwd_iat_mean"].to_numpy(), 0.0)
+    # Validity caps. Only min/max gaps are known, so be conservative:
+    # all gaps idle -> no crossing possible; all active -> stay <= threshold; mixed -> no delay.
+    lo, hi = d["flow_iat_min"].to_numpy(), d["flow_iat_max"].to_numpy()
+    t_act = np.where(lo > ACTIVITY_TIMEOUT_US, np.inf,
+                     np.where(hi <= ACTIVITY_TIMEOUT_US, ACTIVITY_TIMEOUT_US - hi, 0.0))
+    # flow_duration grows by t * (n - 1) (see recompute_derived); keep it within the flow timeout.
+    t_flow = np.maximum(FLOW_TIMEOUT_US - d["flow_duration"].to_numpy(), 0.0) / np.maximum(nn - 1, 1)
+    t = np.nan_to_num(np.floor(np.minimum(t, np.minimum(t_act, t_flow))))  # unknown -> 0
     for c in ("fwd_iat_mean", "fwd_iat_min", "fwd_iat_max"):
         out[c] = d[c] + t
-    out["fwd_iat_total"] = d["fwd_iat_total"] + t * (n - 1)
+    out["fwd_iat_total"] = d["fwd_iat_total"] + t * (nn - 1)
     return out
 
 
