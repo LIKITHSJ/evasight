@@ -17,3 +17,8 @@ paper/*.out
 paper/*.bbl
 paper/*.blg
 artifacts/
+
+# build metadata
+*.egg-info/
+build/
+dist/
