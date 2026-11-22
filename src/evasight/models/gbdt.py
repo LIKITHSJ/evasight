@@ -65,7 +65,9 @@ def main(seed: int = 0, data: Path = D, tag: str = "xgb_improved") -> None:
 
 if __name__ == "__main__":
     import sys
-    if sys.argv[1:] == ["cic2018"]:
+    if sys.argv[1:] == ["unsw"]:
+        main(data=Path("data/processed/unsw_nb15"), tag="xgb_unsw")
+    elif sys.argv[1:] == ["cic2018"]:
         main(data=Path("data/processed/cic_ids2018"), tag="xgb_cic2018")
     else:
         main()
