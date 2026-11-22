@@ -73,9 +73,40 @@ def build(frac: tuple[float, float] = (0.70, 0.85), gap_s: float = 60.0, gap_spa
     return rep
 
 
+def build_unsw(parq: Path = Path("data/interim/unsw_nb15_v2.parquet"),
+               out_dir: Path = Path("data/processed/unsw_nb15"), val_frac: float = 0.15):
+    """Official UNSW-NB15 split made leak-aware: drop conflicting-label vectors, dedup on features
+    (train copy kept), val = hashed 15% of official train. Categorical columns get fixed integer codes."""
+    import json
+    df = pd.read_parquet(parq)
+    cats = [c for c in ("proto", "service", "state") if c in df]
+    codes = {c: {v: i for i, v in enumerate(sorted(df[c].astype(str).unique()))} for c in cats}
+    for c in cats:
+        df[c] = df[c].astype(str).map(codes[c]).astype("float32")
+    df = df.iloc[np.argsort((df["source"] != "train").to_numpy(), kind="stable")].reset_index(drop=True)
+    feats = [c for c in df.columns if c not in NON_FEATURE]
+    h = pd.util.hash_pandas_object(df[feats], index=False).to_numpy()
+    nlab = pd.Series(df["label"].to_numpy()).groupby(h).nunique()
+    ok = ~np.isin(h, nlab.index[nlab > 1].to_numpy())
+    n0 = len(df); df, h = df[ok], h[ok]
+    dup = pd.Series(h).duplicated().to_numpy()
+    n1 = len(df); df, h = df[~dup], h[~dup]
+    is_tr = (df["source"] == "train").to_numpy()
+    part = np.where(~is_tr, "test", np.where(h % 10_000 < int(val_frac * 10_000), "val", "train"))
+    print(f"rows {n0:,} | conflicting-label dropped {n0 - n1 + int(dup.sum()) - int(dup.sum()):,} "
+          f"| feature duplicates dropped {int(dup.sum()):,} | kept {len(df):,}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("train", "val", "test"):
+        df.loc[part == name, feats + ["label", "attack_cat"]].to_parquet(out_dir / f"{name}.parquet", index=False)
+    (out_dir / "category_codes.json").write_text(json.dumps(codes, indent=1))
+    print(pd.crosstab(df["attack_cat"].astype(str), part)[["train", "val", "test"]].to_string())
+
+
 if __name__ == "__main__":
     import sys
-    if sys.argv[1:] == ["cic2018"]:
+    if sys.argv[1:] == ["unsw"]:
+        build_unsw()
+    elif sys.argv[1:] == ["cic2018"]:
         build(parq=Path("data/interim/cic_ids2018_v2.parquet"),
               meta_path=Path("data/interim/cic_ids2018_v2_splitmeta.parquet"),
               out_dir=Path("data/processed/cic_ids2018"))

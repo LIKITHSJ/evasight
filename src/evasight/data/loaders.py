@@ -81,7 +81,13 @@ def load_unsw() -> pd.DataFrame:
     num = df.select_dtypes(include="number").columns.difference(["label"])
     df[num] = df[num].astype("float32")
     audit["categorical_features"] = cat_cols
-    return _finish(df.drop(columns=["official_split"]), "unsw_nb15", audit)
+    # Same dedup rule as before (keep the first copy, so train wins over test), but keep the
+    # official split as metadata. "source" is excluded from model features via NON_FEATURE.
+    audit["rows_before_dedup"] = len(df)
+    dup = df.drop(columns=["official_split"]).duplicated()
+    audit["duplicates_removed"] = int(dup.sum())
+    df = df.loc[~dup].rename(columns={"official_split": "source"})
+    return _finish(df, "unsw_nb15_v2", audit)
 
 
 if __name__ == "__main__":
