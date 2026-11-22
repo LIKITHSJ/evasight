@@ -95,3 +95,10 @@ def test_delay_respects_cicflowmeter_timeouts():
     })
     t = (perturb(d, 0.0, 1.0, 1.0)["fwd_iat_max"] - d["fwd_iat_max"]).to_numpy()
     np.testing.assert_array_equal(t, [500, 1000, 0, 50_000])
+
+
+def test_flows_with_forward_bulk_are_not_perturbed(flows):
+    f = flows.assign(fwd_bytes_bulk_avg=[0.0, 0.0, 0.0, 500.0, 0.0])  # row D: bulk, padding would apply
+    q = perturb(f, 1.0, 1.0, 1.0)
+    pd.testing.assert_series_equal(q.iloc[3], f.iloc[3], check_names=False)
+    assert (q.iloc[0] != f.iloc[0]).any()  # a non-bulk row still changes

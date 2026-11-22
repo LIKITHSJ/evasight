@@ -35,6 +35,8 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     """
     out = d.copy()
     n = d["total_fwd_packets"]
+    # Forward bulk features depend on per-packet timing we cannot reconstruct; leave such flows unperturbed.
+    bulk = (d[[c for c in ('fwd_bytes_bulk_avg', 'fwd_packet_bulk_avg', 'fwd_bulk_rate_avg', 'fwd_avg_bytes_bulk', 'fwd_avg_packets_bulk', 'fwd_avg_bulk_rate') if c in d]] != 0).any(axis=1).to_numpy()
 
     k = d["act_data_pkt_fwd"]  # forward packets that carry payload; SYN/ACK stay empty
     lf = d["total_length_of_fwd_packets"]
@@ -42,6 +44,7 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     p = np.floor(np.asarray(a_pad) * eps * lf / k.where(k > 0))
     p = np.minimum(p, np.maximum(MSS - d["fwd_packet_length_max"], 0))
     p = np.nan_to_num(np.asarray(p, dtype=float))  # k == 0 -> no payload -> no padding
+    p = np.where(bulk, 0.0, p)
     lf_new = lf + p * k
     out["total_length_of_fwd_packets"] = lf_new
     out["fwd_packet_length_mean"] = lf_new / n
@@ -58,6 +61,7 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     # flow_duration grows by t * (n - 1) (see recompute_derived); keep it within the flow timeout.
     t_flow = np.maximum(FLOW_TIMEOUT_US - d["flow_duration"].to_numpy(), 0.0) / np.maximum(nn - 1, 1)
     t = np.nan_to_num(np.floor(np.minimum(t, np.minimum(t_act, t_flow))))  # unknown -> 0
+    t = np.where(bulk, 0.0, t)
     for c in ("fwd_iat_mean", "fwd_iat_min", "fwd_iat_max"):
         out[c] = d[c] + t
     out["fwd_iat_total"] = d["fwd_iat_total"] + t * (nn - 1)

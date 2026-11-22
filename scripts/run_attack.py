@@ -69,4 +69,6 @@ def main(eps_list, out=ART / "v2"):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--eps", type=float, nargs="+", default=[0.1, 0.25, 0.5, 1.0])
-    main(p.parse_args().eps)
+    p.add_argument("--out", default="artifacts/v3")
+    a = p.parse_args()
+    main(a.eps, Path(a.out))
