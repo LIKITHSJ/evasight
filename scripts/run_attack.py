@@ -46,13 +46,13 @@ def summarise(cat: pd.Series, s0: np.ndarray, s: np.ndarray, eps: float) -> pd.D
     return t.assign(eps=eps).reset_index()
 
 
-def main(eps_list, out=ART / "v2"):
+def main(eps_list, out=ART / "v2", test=TEST, tag="xgb_improved"):
     out.mkdir(parents=True, exist_ok=True)
-    a = pd.read_parquet(TEST)
+    a = pd.read_parquet(test)
     a = a[a["label"] == 1].reset_index(drop=True)
     cat = a["attack_cat"].astype(str)
     flows = canon(a.drop(columns=[c for c in NON_FEATURE if c in a])).astype("float64")
-    score = load_scorer()
+    score = load_scorer(ART / f"{tag}.json", ART / f"{tag}_cal.joblib")
     s0 = score(flows)
     print("check vs train log, recall@0.5 on clean attacks:")
     print(pd.Series(s0 >= 0.5).groupby(cat).mean().round(4).sort_values().to_string(), "\n")
@@ -70,5 +70,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--eps", type=float, nargs="+", default=[0.1, 0.25, 0.5, 1.0])
     p.add_argument("--out", default="artifacts/v3")
+    p.add_argument("--data", default=str(TEST))
+    p.add_argument("--tag", default="xgb_improved")
     a = p.parse_args()
-    main(a.eps, Path(a.out))
+    main(a.eps, Path(a.out), Path(a.data), a.tag)
