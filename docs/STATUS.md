@@ -52,14 +52,24 @@ XGBoost baseline). Both are in your area. Please review them, then change or rep
 - [x] Leak-aware split (drops Attempted, dedup, per-class time blocks, rank-capped purge) with integrity tests
 - [x] Calibrated XGBoost baseline on the leak-aware split
 - [x] Package renamed to evasight; egg-info untracked
+- [x] Delay capped by CICFlowMeter timeouts (120 s flow, 5 s activity), measured on the Improved data (PR #15)
+- [x] Model excludes split metadata (source, attempted_category) via NON_FEATURE (PR #16)
+- [x] total_tcp_flow_time excluded per feature_validation.md section 10; baseline retrained as v2, 79 features (PR #18). v1 artifacts kept in artifacts/v1_with_ttft
+- [x] Reproducible attack runner: python -u scripts/run_attack.py (PR #19)
 
 ## Dev findings so far (dev XGBoost, not paper results)
 - Web attacks evade despite high model confidence (H1 refuted on dev model).
 - Almost all evasions that need pad and delay combined are DDoS; evasion runs mainly via fwd_iat_min and average_packet_size.
 - SHAP instability did not separate evaded from non-evaded flows (AUC about 0.52). Inconclusive, because the dev model was overconfident.
 
+## Attack results, v2 baseline (test split, calibrated, delay caps on)
+Evasion = evaded / detected attacks (60,083 detected of 60,309).
+eps 0.1: 61 (0.10%) | eps 0.25: 72 (0.12%) | eps 0.5: 82 (0.14%) | eps 1.0: 109 (0.18%).
+Most evasions are DoS Slowhttptest (12% at eps 1.0). Web attack classes have 2 to 11 test flows, too few to report.
+Old adv_*/shap_* files in artifacts/ came from v1 and are out of date; use artifacts/v2/.
+
 ## Next
-- Likhith: define eps relative to each feature's own value and test a tighter cap; re-run the attack on the calibrated baseline.
+- Likhith: decide with Sharath how to evaluate the instability detector with only 109 evasions. Proposal: keep the 109 as the headline and add a near-evasion analysis (does instability grow with the score drop).
 - Sharath: review split.py and gbdt.py; MLP baseline; LIME next to SHAP; incremental test (does instability add information beyond the raw model score).
 - Both: agree authorship order in docs/authorship.md.
 - Not started: evaluation statistics, paper.
@@ -75,6 +85,8 @@ the loader only produces cleaned full tables at data/interim/<dataset>.parquet.
 - 2026-11-10 and 2026-11-17: Likhith merged PRs #9, #10 and #12 without review to keep the attack work moving. Post-merge review by Sharath is still welcome.
 - 2026-11-17: CIC-IDS2017 Improved release adopted (the original release has all-zero bulk features).
 - 2026-11-22: package renamed ridsx to evasight (PR #13).
+- 2026-11-22: baseline v2 drops total_tcp_flow_time. Raw AUC 1.000, calibrated AUC 0.9988; calibration slightly lowers every metric, worth a look.
+- Open: dataset decision register (PR #17), changes requested. Attempted rows and dedup policy to agree.
 - Open: authorship order (to be agreed in writing in docs/authorship.md).
 
 ## Branching convention (agreed 2026-11-08)
