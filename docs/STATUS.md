@@ -101,6 +101,7 @@ the loader only produces cleaned full tables at data/interim/<dataset>.parquet.
 - 2026-11-23: all three datasets split and baselined; 2018 and UNSW bundle shared.
 - 2026-11-23: attack budgets are cumulative (an attacker with eps may use any change found at a smaller eps); UNSW-NB15 attack added.
 - 2026-11-23: CSE-CIC-IDS2018 switches to the improved release of Liu et al. (CNS 2022); results on the original release are superseded once the new run is done.
+- 2026-11-23: Option C dropped: no experiments on the original CIC-IDS2017 release; we use the improved releases only.
 - Open: dataset decision register (PR #17), changes requested. Attempted rows and dedup policy to agree.
 - Open: authorship order (to be agreed in writing in docs/authorship.md).
 
