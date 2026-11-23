@@ -1,0 +1,9 @@
+flowchart LR
+    A["Attacker host<br/>padding ≤ ε · mean payload<br/>delay ≤ ε · mean gap"] -->|packets| N["Network"]
+    V["Victim<br/>(replies not controllable)"] <-->|traffic| N
+    N --> F["Flow meter<br/>CICFlowMeter / Argus<br/>timeouts 120 s, 5 s (Argus 60 s)<br/>MSS 1,460 B"]
+    F -->|features| X["Calibrated XGBoost"]
+    X -->|attack score| D{"score ≥ 0.5 ?<br/>alert"}
+    X --> E["SHAP / LIME<br/>explanation stability?"]
+    A -.-|"attack score only (query access)"| X
+    classDef default fill:#ffffff,stroke:#333333,color:#000000;
