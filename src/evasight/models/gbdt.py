@@ -68,6 +68,6 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["unsw"]:
         main(data=Path("data/processed/unsw_nb15"), tag="xgb_unsw")
     elif sys.argv[1:] == ["cic2018"]:
-        main(data=Path("data/processed/cic_ids2018"), tag="xgb_cic2018")
+        main(data=Path("data/processed/cic_ids2018_improved"), tag="xgb_cic2018_improved")
     else:
         main()

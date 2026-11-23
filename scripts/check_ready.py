@@ -14,7 +14,7 @@ import xgboost as xgb
 from evasight.data.split import NON_FEATURE
 
 SETS = {"cic2017": ("data/processed/cic_ids2017_improved", "xgb_improved"),
-        "cic2018": ("data/processed/cic_ids2018", "xgb_cic2018"),
+        "cic2018": ("data/processed/cic_ids2018_improved", "xgb_cic2018_improved"),
         "unsw": ("data/processed/unsw_nb15", "xgb_unsw")}
 LEAKY = (NON_FEATURE - {"label", "attack_cat"}) | {"timestamp", "ts", "flow_id", "src_ip", "dst_ip", "src_port", "id"}
 

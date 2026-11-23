@@ -107,8 +107,8 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["unsw"]:
         build_unsw()
     elif sys.argv[1:] == ["cic2018"]:
-        build(parq=Path("data/interim/cic_ids2018_v2.parquet"),
-              meta_path=Path("data/interim/cic_ids2018_v2_splitmeta.parquet"),
-              out_dir=Path("data/processed/cic_ids2018"))
+        build(parq=Path("data/interim/cic_ids2018_improved.parquet"),
+              meta_path=Path("data/interim/cic_ids2018_improved_splitmeta.parquet"),
+              out_dir=Path("data/processed/cic_ids2018_improved"))
     else:
         build()
