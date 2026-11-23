@@ -92,13 +92,15 @@ data/processed/<dataset>/{train,val,test}.parquet with float32 feature columns p
 the loader only produces cleaned full tables at data/interim/<dataset>.parquet.
 
 ## Decision log
-- 2026-11-08: white-box evasion is the primary threat model; poisoning is out of scope. (Refined 2026-11-23: the attack only reads the model's score, so the attacker needs query access, not white-box access.)
+- 2026-11-08: white-box evasion is the primary threat model; poisoning is out of scope. (Refined 2026-11-23: the attack only reads the model's score, so the attacker needs query access, not white-box access.) (Refined 2026-11-23: the attack only reads the model's score, so the attacker needs query access, not white-box access.)
 - 2026-11-08: project named Evasight; repo renamed to LIKITHSJ/evasight.
 - 2026-11-10 and 2026-11-17: Likhith merged PRs #9, #10 and #12 without review to keep the attack work moving. Post-merge review by Sharath is still welcome.
 - 2026-11-17: CIC-IDS2017 Improved release adopted (the original release has all-zero bulk features).
 - 2026-11-22: package renamed ridsx to evasight (PR #13).
 - 2026-11-22: baseline v2 drops total_tcp_flow_time. Raw AUC 1.000, calibrated AUC 0.9988; calibration slightly lowers every metric, worth a look.
 - 2026-11-23: all three datasets split and baselined; 2018 and UNSW bundle shared.
+- 2026-11-23: attack budgets are cumulative (an attacker with eps may use any change found at a smaller eps); UNSW-NB15 attack added.
+- 2026-11-23: CSE-CIC-IDS2018 switches to the improved release of Liu et al. (CNS 2022); results on the original release are superseded once the new run is done.
 - 2026-11-23: attack budgets are cumulative (an attacker with eps may use any change found at a smaller eps); UNSW-NB15 attack added.
 - 2026-11-23: CSE-CIC-IDS2018 switches to the improved release of Liu et al. (CNS 2022); results on the original release are superseded once the new run is done.
 - Open: dataset decision register (PR #17), changes requested. Attempted rows and dedup policy to agree.
