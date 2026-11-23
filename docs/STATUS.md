@@ -67,21 +67,22 @@ All three: leak-aware split (conflicting-label vectors dropped, feature dedup, n
 
 | Dataset | Split | Baseline (calibrated) | Evasion eps 0.1 / 1.0 | Bundle / checksums |
 |---|---|---|---|---|
-| CIC-IDS2017 Improved | per-class time blocks 70/15/15 | 79 feats, AUC 0.9988, benign FPR 0.002% | 55 / 99 of 60,083 (0.09% / 0.16%) | cic2017 v2 bundle, docs/checksums_cic2017_v2.txt; v3 attack in the 2018+UNSW bundle |
+| CIC-IDS2017 Improved | per-class time blocks 70/15/15 | 79 feats, AUC 0.9988, benign FPR 0.002% | 39 / 93 of 60,083 (0.06% / 0.15%) | cic2017 v2 bundle, docs/checksums_cic2017_v2.txt; v3 attack in the 2018+UNSW bundle |
 | CSE-CIC-IDS2018 | per-class time blocks 70/15/15 | 68 feats, AUC 0.9839, benign FPR 2.01% | 802 / 1,364 of 183,487 (0.44% / 0.74%) | 2018+UNSW bundle, docs/checksums_2018_unsw_v1.txt |
 | UNSW-NB15 | official train/test; val = hashed 15% of train | 42 feats, AUC 0.9661, benign FPR 25.4% | 382 / 1,002 of 18,335 (2.08% / 5.46%) | 2018+UNSW bundle |
 
 Commands: split `python -m evasight.data.split [cic2018|unsw]`, train `python -m evasight.models.gbdt [cic2018|unsw]`, attack `python -u scripts/run_attack.py --data <test.parquet> --tag <xgb_tag> --out <dir>`.
 
 Notes for the ML side:
-- Attack results to use: artifacts/v4 (2017), artifacts/cic2018_v2, artifacts/unsw_v2. Budgets are cumulative: an attacker with eps may use any perturbation found at a smaller eps, so evasion never falls as eps grows. In 2017, flows with forward bulk activity are not perturbed (v2 overstated slow DoS evasion).
+- 2026-11-23: padding now updates fwd_packet_length_std, packet_length_variance and packet_length_std exactly (PR #43). v4 kept stale std values, and 16 of its 55 eps 0.1 evasions depended on them. 2017 results move to artifacts/v5 (39 / 93).
+- Attack results to use: artifacts/v5 (2017), artifacts/cic2018_v2, artifacts/unsw_v2. Budgets are cumulative: an attacker with eps may use any perturbation found at a smaller eps, so evasion never falls as eps grows. In 2017, flows with forward bulk activity are not perturbed (v2 overstated slow DoS evasion).
 - 2018: raw timestamps use a 12-hour clock without AM/PM, fixed in the loader (hours 1-7 are PM, checked against the published schedule). Infilteration recall is 0.26 (known label noise); report with and without it. Isotonic calibration raised ECE (0.014 to 0.024).
 - UNSW: the official test set differs from train, so benign FPR at 0.5 is 25%; threshold and calibration need care. proto/service/state are integer codes (data/processed/unsw_nb15/category_codes.json). Official split sizes after the loader's dedup: train 107,740, test 55,005 (the decision register's 106,800/55,945 swaps the 940 cross-split duplicates).
 - Tiny classes (2017 web attacks, 2018 SlowHTTPTest and FTP, UNSW Worms) are too small to report per class.
 
 ## Next
 - Likhith: done with attacks on all three datasets (UNSW perturbation in src/evasight/attacks/unsw.py, configs/unsw_controllability.csv).
-- Both: instability detector evaluation. 2017 has 99 evasions, 2018 has 1,358; add a near-evasion analysis (does instability grow with the score drop).
+- Both: instability detector evaluation. 2017 has 93 evasions, 2018 has 1,358; add a near-evasion analysis (does instability grow with the score drop).
 - Sharath: review split.py and gbdt.py; MLP baseline; LIME next to SHAP; incremental test (does instability add information beyond the raw model score).
 - Both: agree authorship order in docs/authorship.md.
 - Not started: evaluation statistics, paper.
