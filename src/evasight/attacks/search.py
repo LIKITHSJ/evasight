@@ -14,19 +14,20 @@ LEVELS = (0.0, 0.25, 0.5, 0.75, 1.0)
 
 
 def grid_attack(flows: pd.DataFrame, score_fn: Callable[[pd.DataFrame], np.ndarray],
-                eps: float, levels=LEVELS, threshold: float = 0.5):
+                eps: float, levels=LEVELS, threshold: float = 0.5, step=None, rules_fn=rules):
     """Try every (pad, delay) combination and keep, per flow, the valid perturbation with the
     lowest attack score. flows: float64 attack flows with a default RangeIndex.
     score_fn: DataFrame -> attack probability per row (the target model).
     Returns (adversarial_flows, best_score, evaded). A perturbed flow counts only if it breaks
     no validity rule that the original flow satisfied; otherwise the original flow is kept.
     """
-    ok0 = pd.DataFrame(rules(flows))
+    ok0 = pd.DataFrame(rules_fn(flows))
     best = np.asarray(score_fn(flows), dtype=float)
     adv = flows.copy()
     for a_pad, a_delay in itertools.product(levels, levels):
-        cand = recompute_derived(flows, perturb(flows, a_pad, a_delay, eps))
-        valid = ~(ok0 & ~pd.DataFrame(rules(cand))).any(axis=1).to_numpy()
+        cand = (step(flows, a_pad, a_delay, eps) if step
+                else recompute_derived(flows, perturb(flows, a_pad, a_delay, eps)))
+        valid = ~(ok0 & ~pd.DataFrame(rules_fn(cand))).any(axis=1).to_numpy()
         s = np.asarray(score_fn(cand), dtype=float)
         better = valid & (s < best)
         best = np.where(better, s, best)
