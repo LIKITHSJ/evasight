@@ -31,7 +31,7 @@ Write each section in its own file (paper/03_threat_model.md, ...). Plain Markdo
 - Calibrated XGBoost baselines (+ MLP), SHAP and LIME, stability metrics.
 
 ## 7. Results (both)
-- Evasion per dataset and class (eps 0.1 / 1.0): 2017 99, 2018 1,364, UNSW 1,002 at eps 1.0.
+- Evasion per dataset and class (eps 0.1 / 1.0): 2017 93, 2018 1,364, UNSW 1,002 at eps 1.0.
 - Explanation stability and instability-based detection (pending).
 
 ## 8. Limitations and conclusion (both)

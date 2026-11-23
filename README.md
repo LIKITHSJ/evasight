@@ -19,7 +19,7 @@ Test split, calibrated XGBoost, evasion = share of detected attacks whose score 
 
 | Dataset | Features | AUC | Evasion at ε = 0.1 | Evasion at ε = 1.0 |
 |---|---|---|---|---|
-| CIC-IDS2017 (improved) | 79 | 0.9988 | 0.09% | 0.16% |
+| CIC-IDS2017 (improved) | 79 | 0.9988 | 0.06% | 0.15% |
 | UNSW-NB15 | 42 | 0.9661 | 2.08% | 5.46% |
 | CSE-CIC-IDS2018 (improved) | in progress | | | |
 
@@ -44,7 +44,7 @@ python -u scripts/run_attack.py --data data/processed/unsw_nb15/test.parquet --t
 # CIC-IDS2017 (improved): split, train, attack
 python -m evasight.data.split
 python -m evasight.models.gbdt
-python -u scripts/run_attack.py --out artifacts/v4
+python -u scripts/run_attack.py --out artifacts/v5
 
 # Check that every processed dataset is ready for modelling
 python scripts/check_ready.py
