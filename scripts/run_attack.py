@@ -53,14 +53,25 @@ def main(eps_list, out=ART / "v2", test=TEST, tag="xgb_improved"):
     cat = a["attack_cat"].astype(str)
     flows = canon(a.drop(columns=[c for c in NON_FEATURE if c in a])).astype("float64")
     score = load_scorer(ART / f"{tag}.json", ART / f"{tag}_cal.joblib")
+    kw = {}
+    if tag == "xgb_unsw":  # Argus features: own perturbation and rules
+        import json
+        from evasight.attacks.unsw import perturb_unsw, rules_unsw
+        codes = json.loads((Path(test).parent / "category_codes.json").read_text())
+        tcp = (flows["proto"] == codes["proto"]["tcp"]).to_numpy()
+        kw = {"step": lambda f, a, b, e: perturb_unsw(f, a, b, e, tcp), "rules_fn": rules_unsw}
     s0 = score(flows)
     print("check vs train log, recall@0.5 on clean attacks:")
     print(pd.Series(s0 >= 0.5).groupby(cat).mean().round(4).sort_values().to_string(), "\n")
     res = []
-    for eps in eps_list:
-        adv, s, _ = grid_attack(flows, score, eps)
-        adv.assign(attack_cat=cat, score_orig=s0, score_adv=s).to_parquet(out / f"adv_eps{eps}.parquet")
-        res.append(summarise(cat, s0, s, eps))
+    best_s, best_adv = s0.copy(), flows.copy()
+    for eps in sorted(eps_list):  # budget eps includes every smaller budget, so evasion never drops
+        adv, s, _ = grid_attack(flows, score, eps, **kw)
+        better = s < best_s
+        best_s = np.where(better, s, best_s)
+        best_adv.loc[better] = adv.loc[better]
+        best_adv.assign(attack_cat=cat, score_orig=s0, score_adv=best_s).to_parquet(out / f"adv_eps{eps}.parquet")
+        res.append(summarise(cat, s0, best_s, eps))
         print(f"eps={eps}: evasion {res[-1].iloc[-1]['evasion_%']}% of detected attacks")
     pd.concat(res).to_csv(out / "attack_summary.csv", index=False)
     print(pd.concat(res).pivot(index="cat", columns="eps", values="evasion_%").to_string())
