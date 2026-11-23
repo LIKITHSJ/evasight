@@ -99,6 +99,11 @@ def perturb(d: pd.DataFrame, a_pad, a_delay, eps: float) -> pd.DataFrame:
     out["fwd_packet_length_mean"] = lf_new / n
     out["fwd_packet_length_max"] = d["fwd_packet_length_max"] + p
     out["fwd_packet_length_min"] = d["fwd_packet_length_min"] + np.where(k == n, p, 0.0)
+    # Exact: sum of squares grows by 2*p*(sum of data-packet lengths) + k*p^2 (empty packets stay 0).
+    ss = (n - 1) * d["fwd_packet_length_std"] ** 2 + n * d["fwd_packet_length_mean"] ** 2
+    ss_new = ss + 2 * p * lf + k * p ** 2
+    var_f = (ss_new - n * out["fwd_packet_length_mean"] ** 2) / (n - 1).where(n > 1)
+    out["fwd_packet_length_std"] = np.sqrt(np.maximum(var_f, 0.0)).fillna(0.0)
 
     nn = n.to_numpy(dtype=float)
     t = np.where(nn > 1, np.asarray(a_delay) * eps * d["fwd_iat_mean"].to_numpy(), 0.0)
@@ -130,7 +135,13 @@ def recompute_derived(orig: pd.DataFrame, pert: pd.DataFrame) -> pd.DataFrame:
     lf, lb = pert["total_length_of_fwd_packets"], o["total_length_of_bwd_packets"]
     resid = o["average_packet_size"] * n - (o["total_length_of_fwd_packets"] + lb)
     out["average_packet_size"] = (lf + lb + resid) / n
-    out["packet_length_mean"] = out["average_packet_size"] * n / (n + 1)
+    out["packet_length_mean"] = out["average_packet_size"]  # improved release: identical (old release had n/(n+1))
+    mf_new, sf_new = pert["fwd_packet_length_mean"], pert["fwd_packet_length_std"]
+    ss_all = ((nf - 1) * sf_new ** 2 + nf * mf_new ** 2
+              + (nb - 1).clip(lower=0) * o["bwd_packet_length_std"] ** 2 + nb * o["bwd_packet_length_mean"] ** 2)
+    var_all = (ss_all - (lf + lb) ** 2 / n) / (n - 1).where(n > 1)
+    out["packet_length_variance"] = np.maximum(var_all, 0.0).fillna(0.0)
+    out["packet_length_std"] = np.sqrt(out["packet_length_variance"])
     dur = o["flow_duration"] + (pert["fwd_iat_total"] - o["fwd_iat_total"])
     sec = dur / 1e6
     out["flow_duration"] = dur
