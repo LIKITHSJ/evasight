@@ -21,9 +21,9 @@ Test split, calibrated XGBoost, evasion = share of detected attacks whose score 
 |---|---|---|---|---|
 | CIC-IDS2017 (improved) | 79 | 0.9988 | 0.06% | 0.15% |
 | UNSW-NB15 | 42 | 0.9661 | 2.08% | 5.46% |
-| CSE-CIC-IDS2018 (improved) | in progress | | | |
+| CSE-CIC-IDS2018 (improved) | 79 | 1.0000 | 0.00% | 0.04% |
 
-The weaker the baseline, the easier the evasion. On CIC-IDS2017, most evasions are slow DoS attacks.
+The weaker the baseline, the easier the evasion. On CIC-IDS2017, most evasions are slow DoS attacks. On CSE-CIC-IDS2018 the near-perfect score partly comes from the TCP initial window size, which fingerprints the attackers' operating system: a shortcut that padding and delay cannot touch, and one we report rather than hide.
 
 ## Data
 
@@ -45,6 +45,12 @@ python -u scripts/run_attack.py --data data/processed/unsw_nb15/test.parquet --t
 python -m evasight.data.split
 python -m evasight.models.gbdt
 python -u scripts/run_attack.py --out artifacts/v5
+
+# CSE-CIC-IDS2018 (improved): load, split, train, attack
+python -m evasight.data.loader_cic2018_improved load 0.1
+python -m evasight.data.split cic2018
+python -m evasight.models.gbdt cic2018
+python -u scripts/run_attack.py --data data/processed/cic_ids2018_improved/test.parquet --tag xgb_cic2018_improved --out artifacts/cic2018_improved
 
 # Check that every processed dataset is ready for modelling
 python scripts/check_ready.py
