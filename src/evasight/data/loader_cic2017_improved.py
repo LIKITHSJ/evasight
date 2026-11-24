@@ -8,8 +8,12 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import re
+import shutil
+import tempfile
 from collections import Counter, defaultdict
+from itertools import zip_longest
 from pathlib import Path
 
 import numpy as np
@@ -21,9 +25,11 @@ import pyarrow.parquet as pq
 RAW = Path("data/raw/cic_ids2017_improved")
 INTERIM = Path("data/interim")
 OUTPUT = INTERIM / "cic_ids2017_improved.parquet"
+SPLITMETA = INTERIM / "cic_ids2017_improved_splitmeta.parquet"
 AUDIT = INTERIM / "cic_ids2017_improved_audit.json"
 
 CHUNK_SIZE = 100_000
+TS_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
 # Identifier fields excluded from model inputs.
 # Dst Port and Protocol are intentionally retained.
@@ -54,7 +60,66 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def main() -> None:
+def _source_values(path: Path):
+    parquet = pq.ParquetFile(path)
+    for batch in parquet.iter_batches(columns=["source"], batch_size=CHUNK_SIZE):
+        yield from batch.column(0).to_pylist()
+
+
+def _temporary_path(prefix: str) -> Path:
+    descriptor, name = tempfile.mkstemp(
+        prefix=f".{prefix}.", suffix=".tmp", dir=INTERIM
+    )
+    os.close(descriptor)
+    return Path(name)
+
+
+def _verify_outputs(
+    output_path: Path,
+    metadata_path: Path,
+    output_schema: pa.Schema,
+    metadata_schema: pa.Schema,
+    expected_rows: int,
+) -> None:
+    data_parquet = pq.ParquetFile(output_path)
+    meta_parquet = pq.ParquetFile(metadata_path)
+    if meta_parquet.schema_arrow.names != ["source", "ts"]:
+        raise RuntimeError(
+            "Split metadata must contain exactly the 'source' and 'ts' columns."
+        )
+    if not data_parquet.schema_arrow.equals(output_schema, check_metadata=False):
+        raise RuntimeError("Cleaned dataset schema differs from the written schema.")
+    if not meta_parquet.schema_arrow.equals(metadata_schema, check_metadata=False):
+        raise RuntimeError("Split metadata schema differs from the written schema.")
+    if (
+        data_parquet.metadata.num_rows != expected_rows
+        or meta_parquet.metadata.num_rows != expected_rows
+    ):
+        raise RuntimeError(
+            "Written row count differs from the expected count: "
+            f"expected {expected_rows}, cleaned {data_parquet.metadata.num_rows}, "
+            f"metadata {meta_parquet.metadata.num_rows}"
+        )
+
+    sentinel = object()
+    for row_number, (data_source, meta_source) in enumerate(
+        zip_longest(
+            _source_values(output_path),
+            _source_values(metadata_path),
+            fillvalue=sentinel,
+        ),
+        start=1,
+    ):
+        if data_source is sentinel or meta_source is sentinel or data_source != meta_source:
+            raise RuntimeError(
+                "Cleaned dataset and split metadata sources differ at row "
+                f"{row_number}: {data_source!r} != {meta_source!r}"
+            )
+
+
+def _load_to_temporary_outputs(
+    output_path: Path, metadata_path: Path, temporary_paths: list[Path]
+) -> None:
     INTERIM.mkdir(parents=True, exist_ok=True)
 
     files = sorted(RAW.glob("*.csv"))
@@ -74,11 +139,15 @@ def main() -> None:
     retained_label_counts = Counter()
     binary_label_counts = Counter()
     source_day_counts = Counter()
+    unparsed_timestamps = 0
     invalid_rows_by_day = Counter()
     nonfinite_values_by_feature = Counter()
     nonfinite_values_by_day_feature = defaultdict(Counter)
 
     writer = None
+    metadata_writer = None
+    output_schema = None
+    metadata_schema = None
     expected_columns = None
 
     try:
@@ -105,7 +174,7 @@ def main() -> None:
                 if chunk.empty:
                     continue
 
-                required = {"Label", "Attempted Category"}
+                required = {"Label", "Attempted Category", "Timestamp"}
                 missing = required - set(chunk.columns)
                 if missing:
                     raise RuntimeError(
@@ -118,6 +187,11 @@ def main() -> None:
                     raise RuntimeError(
                         f"Column names/order differ in {file_path.name}"
                     )
+
+                timestamps = pd.to_datetime(
+                    chunk["Timestamp"], format=TS_FORMAT, errors="coerce"
+                )
+                unparsed_timestamps += int(timestamps.isna().sum())
 
                 attack_cat = chunk["Label"].fillna("").astype(str).str.strip()
                 attempted_raw = (
@@ -200,6 +274,15 @@ def main() -> None:
                 if not valid.any():
                     continue
 
+                bad_timestamp = valid & timestamps.isna().to_numpy()
+                if bad_timestamp.any():
+                    examples = chunk.loc[bad_timestamp, "Timestamp"].head(5).tolist()
+                    raise RuntimeError(
+                        f"Unparseable timestamp(s) for retained records in "
+                        f"{file_path.name}; expected format {TS_FORMAT!r}. "
+                        f"Examples: {examples!r}"
+                    )
+
                 # Keep original multiclass label as metadata.
                 kept_attack_cat = attack_cat.loc[valid].reset_index(drop=True)
                 kept_attempted = (
@@ -248,26 +331,53 @@ def main() -> None:
                 table = pa.Table.from_pandas(
                     output_chunk, preserve_index=False
                 )
+                kept_timestamps = timestamps.loc[valid].reset_index(drop=True)
+                metadata_table = pa.Table.from_pandas(
+                    pd.DataFrame(
+                        {
+                            "source": [source_day] * len(output_chunk),
+                            "ts": kept_timestamps,
+                        }
+                    ),
+                    preserve_index=False,
+                )
 
                 if writer is None:
-                    writer = pq.ParquetWriter(OUTPUT, table.schema)
+                    output_schema = table.schema
+                    metadata_schema = metadata_table.schema
+                    writer = pq.ParquetWriter(output_path, output_schema)
+                    metadata_writer = pq.ParquetWriter(
+                        metadata_path, metadata_schema
+                    )
                 else:
                     if not table.schema.equals(writer.schema):
                         raise RuntimeError(
                             "Parquet schema changed between chunks."
                         )
+                    if not metadata_table.schema.equals(metadata_writer.schema):
+                        raise RuntimeError(
+                            "Split metadata schema changed between chunks."
+                        )
 
                 writer.write_table(table)
+                metadata_writer.write_table(metadata_table)
                 rows_written += len(output_chunk)
 
     finally:
-        if writer is not None:
-            writer.close()
+        try:
+            if writer is not None:
+                writer.close()
+        finally:
+            if metadata_writer is not None:
+                metadata_writer.close()
 
     if rows_written == 0:
         raise RuntimeError("No valid rows were written; no output was produced.")
 
-    # Remove an old audit only after a successful data write.
+    _verify_outputs(
+        output_path, metadata_path, output_schema, metadata_schema, rows_written
+    )
+
     audit = {
         "dataset": "CIC-IDS2017 improved",
         "source_directory": str(RAW),
@@ -278,6 +388,11 @@ def main() -> None:
         "invalid_rows_removed": invalid_rows_removed,
         "invalid_rows_removed_by_source_day": dict(invalid_rows_by_day),
         "rows_written": rows_written,
+        "timestamp_parsing": {
+            "format": TS_FORMAT,
+            "unparsed_timestamps": unparsed_timestamps,
+            "unparsed_timestamp_count_includes_invalid_rows": True,
+        },
         "label_category_mismatches": label_category_mismatches,
         "original_label_counts_before_cleaning": dict(
             sorted(original_label_counts.items())
@@ -326,10 +441,34 @@ def main() -> None:
         "deduplication_performed": False,
     }
 
-    AUDIT.write_text(
-        json.dumps(audit, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    final_paths = (OUTPUT, SPLITMETA)
+    existed_before = {path: path.exists() for path in final_paths}
+    backups = {}
+    for path in final_paths:
+        if existed_before[path]:
+            backup = _temporary_path(f"{path.stem}.backup")
+            temporary_paths.append(backup)
+            shutil.copy2(path, backup)
+            backups[path] = backup
+
+    try:
+        os.replace(output_path, OUTPUT)
+        os.replace(metadata_path, SPLITMETA)
+
+        audit_path = _temporary_path(f"{AUDIT.stem}.audit")
+        temporary_paths.append(audit_path)
+        audit_path.write_text(
+            json.dumps(audit, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        os.replace(audit_path, AUDIT)
+    except Exception:
+        for path in final_paths:
+            if path in backups:
+                os.replace(backups[path], path)
+            elif not existed_before[path]:
+                path.unlink(missing_ok=True)
+        raise
 
     print("\nLoader completed.")
     print(f"Rows read: {rows_read:,}")
@@ -337,7 +476,29 @@ def main() -> None:
     print(f"Invalid rows removed: {invalid_rows_removed:,}")
     print(f"Rows written: {rows_written:,}")
     print(f"Parquet: {OUTPUT}")
+    print(f"Split metadata: {SPLITMETA}")
     print(f"Audit: {AUDIT}")
+
+
+def main() -> None:
+    INTERIM.mkdir(parents=True, exist_ok=True)
+    temporary_paths = []
+    try:
+        output_path = _temporary_path(OUTPUT.stem)
+        temporary_paths.append(output_path)
+        metadata_path = _temporary_path(SPLITMETA.stem)
+        temporary_paths.append(metadata_path)
+        _load_to_temporary_outputs(output_path, metadata_path, temporary_paths)
+    finally:
+        cleanup_error = None
+        for path in temporary_paths:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError as error:
+                if cleanup_error is None:
+                    cleanup_error = error
+        if cleanup_error is not None:
+            raise cleanup_error
 
 
 if __name__ == "__main__":
