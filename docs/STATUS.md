@@ -3,8 +3,8 @@ Last updated: 2026-11-23 by Likhith. Update this file at the end of every work s
 
 ## Project
 Adversarially robust and explainable network intrusion detection (NIDS), co-authored by
-Likhith (Master's in Cybersecurity) and Sharath (Master's in Data Science). Target: arXiv
-preprint + workshop/conference submission. Project name: Evasight. Repo: LIKITHSJ/evasight (private).
+Likhith and Sharath. Target: arXiv preprint + workshop/conference submission.
+Project name: Evasight. Repo: LIKITHSJ/evasight.
 RQ: do SHAP/LIME explanations of an IDS stay stable under constraint-respecting adversarial
 perturbations, and can instability detect evasion attacks?
 Datasets: CIC-IDS2017 (Improved release), CSE-CIC-IDS2018, UNSW-NB15 (never committed; see docs/checksums.txt).
@@ -14,14 +14,6 @@ Constraints: everything free; MacBook Air M2, 8 GB RAM (chunked reads, float32, 
 The package was renamed from `ridsx` to `evasight` (PR #13). In your venv run:
 `git pull && python -m pip install -e ".[dev]"` then `python -m pytest -q` (14 tests should pass).
 Imports are now `from evasight...`. egg-info is no longer tracked; delete any local `src/ridsx.egg-info`.
-
-## Rules for any AI assistant used by either author
-- The AI is a tutor and reviewer. The authors decide, write and are responsible for the work.
-- Explain concepts, review code, suggest options. Do not write whole modules unprompted.
-- Never edit files outside the asking author's owned folders (see Ownership) without a PR.
-- Read this file first. After any milestone, propose a STATUS.md update for the author to commit.
-- Authors must be able to explain every line they commit. AI help is disclosed in the paper
-  as the target venue requires.
 
 ## Ownership
 | Area | Owner | Folders |
