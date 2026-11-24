@@ -1,0 +1,2 @@
+cc9d82c83f5082ed04e7c3d27a8fca4037bc39a1c9f1b75793d1b4bebc7a0ced  evasight_bundle_v3.tar
+# 2026-11-24: data/processed/cic_ids2018_improved, artifacts/xgb_cic2018_improved.{json,_cal.joblib}, artifacts/cic2018_improved, artifacts/v5
