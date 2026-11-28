@@ -1,5 +1,6 @@
 # Project status and handoff
-Last updated: 2026-11-23 by Likhith. Update this file at the end of every work session.
+Last updated: 2026-11-28 (research-paper documentation update; author not recorded).
+Update this file at the end of every work session.
 
 ## Project
 Adversarially robust and explainable network intrusion detection (NIDS), co-authored by
@@ -48,6 +49,14 @@ XGBoost baseline). Both are in your area. Please review them, then change or rep
 - [x] Model excludes split metadata (source, attempted_category) via NON_FEATURE (PR #16)
 - [x] total_tcp_flow_time excluded per feature_validation.md section 10; baseline retrained as v2, 79 features (PR #18). v1 artifacts kept in artifacts/v1_with_ttft
 - [x] Reproducible attack runner: python -u scripts/run_attack.py (PR #19)
+- [x] Completed full CIC-IDS2017 MLP baseline (2026-11-28); execution output was
+  user-supplied and matches local checkpoint metadata. Source commit, dataset hash
+  association and archived full execution log remain needed for stronger independent
+  reproducibility. This is a detection baseline, not a robustness experiment.
+- [x] Completed full CSE-CIC-IDS2018 Improved MLP baseline (2026-11-28); full training
+  and test partitions were used. Best epoch 34, stopped at epoch 39. The local checkpoint
+  matches the supplied results. Source commit, dataset-hash association and archived
+  execution log remain needed for stronger independent reproducibility.
 
 ## Dev findings so far (dev XGBoost, not paper results)
 - Web attacks evade despite high model confidence (H1 refuted on dev model).
@@ -74,15 +83,46 @@ Notes for the ML side:
 
 ## Next
 - Likhith: done with attacks on all three datasets (UNSW perturbation in src/evasight/attacks/unsw.py, configs/unsw_controllability.csv).
-- Both: instability detector evaluation. 2017 has 93 evasions, 2018 has 197; add a near-evasion analysis (does instability grow with the score drop).
-- Sharath: review split.py and gbdt.py; MLP baseline; LIME next to SHAP; incremental test (does instability add information beyond the raw model score).
+- Both: adversarial explanation-stability and instability-detector evaluation remain
+  pending. 2017 has 93 evasions, 2018 has 197; add a near-evasion analysis (does
+  instability grow with the score drop).
+- Sharath: review split.py and gbdt.py; identify the source commit and dataset hashes for
+  both completed CIC MLP runs and archive their full execution logs; train/validate the
+  UNSW MLP baseline; run SHAP/LIME on both full-dataset MLP checkpoints; continue LIME and
+  the incremental test (does instability add information beyond the raw model score).
 - Both: agree authorship order in docs/authorship.md.
-- Not started: evaluation statistics, paper.
+- In progress: paper drafting; evaluation statistics are not started.
 
 ## Proposed data contract (Sharath to review via PR)
 data/processed/<dataset>/{train,val,test}.parquet with float32 feature columns plus
 `label` (0 benign, 1 attack) and `attack_cat` (string). Splits are made by the split code;
 the loader only produces cleaned full tables at data/interim/<dataset>.parquet.
+
+## Research-paper documentation update (2026-11-28)
+- Working manuscript and evidence ledgers are in `paper/manuscript.md`,
+  `paper/experiment_log.md`, `paper/experimental_results.md`,
+  `paper/reproducibility.md` and `paper/open_questions.md`.
+- The existing XGBoost status-table scores differ from separately supplied historical
+  calibration metrics; see the ledger rather than merging these as one result.
+- The full CIC-IDS2017 MLP run completed with best epoch 13, stopped at epoch 18, and
+  verified partition sizes of 1,270,642/267,435/274,132. Its user-supplied execution output
+  matches the local `artifacts/mlp_full_models/` checkpoint metadata. The checkpoint remains
+  ignored/uncommitted; source commit identification, dataset hash association and archiving
+  the full execution log are outstanding for stronger independent reproducibility.
+- The full CSE-CIC-IDS2018 Improved MLP run completed with best epoch 34, stopped at epoch
+  39, and partition sizes of 5,607,932/1,167,746/1,210,959. The local
+  `artifacts/mlp_cic2018_models/` checkpoint matches the supplied results. Raw/calibrated
+  AUC, Brier, ECE, TPR and benign FPR are recorded in the experiment ledger; calibration
+  improves Brier/ECE but slightly reduces AUCs and increases benign FPR at 0.5. Test
+  supports are recorded from the actual Parquet: Dropbox Download 13 (0 recall), DoS
+  Slowloris 1,274, Web Attack - SQL 6 (4/6 raw and calibrated). The audit and dataset
+  identity conflicts remain unresolved; source commit, dataset hashes and archived run log
+  are also outstanding.
+- The six-observation SHAP/LIME experiment used the separate MLP smoke checkpoint, not the
+  completed full MLP checkpoints. SHAP/LIME on the full CIC-IDS2017 and CIC-IDS2018 models,
+  adversarial explanation-stability studies, and the UNSW-NB15 MLP remain pending.
+- The CSE-CIC-IDS2018 audit JSON, older manuscript totals and current processed split sizes
+  conflict. Sampling and duplicate totals remain provisional pending version reconciliation.
 
 ## Decision log
 - 2026-11-08: white-box evasion is the primary threat model; poisoning is out of scope. (Refined 2026-11-23: the attack only reads the model's score, so the attacker needs query access, not white-box access.)

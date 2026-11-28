@@ -1,11 +1,101 @@
 # 4. Datasets and data quality
 
-We use three public datasets. Two come from the same flow meter, which lets us compare a cleaned and an uncleaned release, and the third uses a different tool and feature set.
+## 4.1 Sources and scope
 
-CIC-IDS2017 and CSE-CIC-IDS2018 are used in the improved releases of Liu et al. (CNS 2022), which build on the corrected CIC-IDS2017 of Engelen et al. (2021), regenerate the flows from the original packet captures with a corrected CICFlowMeter, and relabel them. After removing 5 rows with non-finite values we keep 2,099,971 flows from five capture days. From CSE-CIC-IDS2018 we read 63,195,145 flows from ten capture days and remove 57 with non-finite values. To fit it into 8 GB of memory we keep all non-benign flows and a seeded 10% sample of benign flows, 9,780,124 flows in total. This raises the non-benign share from 6.1% to 39.3%, so we report it as a sampling choice and not as the natural one. UNSW-NB15 is used through its official training and testing sets, 257,673 flows in total, described by 42 features from Argus and Zeek.
+The study uses improved CIC-IDS2017 and CSE-CIC-IDS2018 files supplied with the
+Error Prevalence project [4], and the official UNSW-NB15 training/testing release
+described on the UNSW dataset page [5]. We do not redistribute source data. The local
+SHA-256 manifests in `docs/checksums*.txt` identify the bundles used in the project; the
+CIC-IDS2017 archive checksum recorded in `docs/audit/cic_ids2017_feature_validation.md`
+has not been compared against an independently published checksum.
 
-All splits follow the same rules. We drop feature vectors that appear with conflicting labels, remove duplicate feature vectors, and make sure no feature vector appears in more than one partition. For the two CIC datasets we split each class separately by time into 70% training, 15% validation and 15% test, and remove the flows that lie just before each cut (within 60 s, and at most 1% of the class) so that bursts of near-identical flows cannot cross a boundary. We also drop the flows labelled as attempted attacks, 11,979 in CIC-IDS2017 and 306,237 in CSE-CIC-IDS2018, where every FTP brute force flow is an attempt. This gives 1,270,642, 267,435 and 274,132 flows for CIC-IDS2017 and 5,607,932, 1,167,746 and 1,210,959 for CSE-CIC-IDS2018. UNSW-NB15 has no timestamps, so we keep its official test set and use a 15% subset of the official training set, chosen by hashing the feature vector, as validation. When the same record appears in both official sets we keep the training copy, which leaves 107,740 training and 55,005 test records before our own cleaning and 85,649, 14,981 and 52,640 after it.
+The following row counts were read directly from the current processed Parquet partitions:
 
-We exclude three kinds of columns from the model input. Identifiers such as addresses, ports of the client and flow IDs are removed. Metadata such as the capture day is kept for splitting but never used as a feature, because in the CIC data each attack ran on a particular day and the day alone would reveal the label. Finally, we exclude features whose values we could not verify: the forward and backward header lengths, which contain negative values, and the TCP flow time of the improved CIC-IDS2017 release, whose definition we could not confirm. The models therefore use 79, 79 and 42 features.
+| Dataset | Train | Validation | Test | Feature count in baseline |
+|---|---:|---:|---:|---:|
+| CIC-IDS2017 Improved | 1,270,642 | 267,435 | 274,132 | 79 |
+| CSE-CIC-IDS2018 Improved | 5,607,932 | 1,167,746 | 1,210,959 | 79 |
+| UNSW-NB15 | 85,649 | 14,981 | 52,640 | 42 |
 
-Checking the data against our attack constraints exposed four problems. [TODO: check Liu et al. 2022 and the 2018 documentation page for each before claiming any as new.] First, the timestamps of the original CSE-CIC-IDS2018 release use a 12-hour clock without AM or PM, so afternoon traffic sorts before morning traffic. All hours lie between 1 and 12, and mapping hours 1 to 7 to the afternoon matches the published attack schedule exactly; for example, FTP brute force then falls between 10:33 and 11:58 and SSH brute force between 14:01 and 15:32 on 14 February. A time-based split built on the raw timestamps would mix the order of each day. The improved release does not have this problem; its timestamps are in UTC, four hours ahead of the published local schedule. Second, in the improved CIC-IDS2017 release every UDP and ICMP flow records header and segment sizes that only make sense for TCP, so 47% of clean flows broke two rules that hold for 99.9% of TCP flows; these rules must be limited to TCP. Third, the bulk-transfer features, which are zero throughout the original CIC-IDS2017 release, are non-zero in the improved one, and they depend on packet timing that cannot be recovered from flow summaries. Fourth, many duplicate and conflicting records remain: CSE-CIC-IDS2018 has no conflicting records but 1,400,893 duplicates, almost all benign apart from 37,829 NMAP port scans (42% of that class), and 829 conflicting and 8,646 duplicate records remain in UNSW-NB15 after the loader's own cleaning.
+These are current split sizes, not claims about the source population. CIC partitions are
+split into train/validation/test time blocks by class (70/15/15 target fractions with
+rank-capped purging). The UNSW test partition follows the official split; validation is
+selected from official training data by a stable hash. Conflicting-label feature vectors and
+duplicate vectors are removed, and the split implementation is designed to prevent the same
+feature vector from appearing across partitions. Details and tests are in
+`src/evasight/data/split.py` and `tests/test_split.py`.
+
+## 4.2 Data-cleaning audits and unresolved version mismatches
+
+The project audit `docs/audit/cic_ids2017_audit.json` reports 329,896 duplicates removed
+from 2,827,876 rows (11.67%). The improved-release validation report instead identifies
+2,099,976 source rows, five non-finite rows removed, and 2,099,971 cleaned rows. The
+reported 11.7% duplicate rate therefore must not be attributed to the improved-release
+source without reconciling these distinct audit scopes. The final CIC-IDS2017 processed
+partitions contain 1,812,209 rows after split-specific exclusions and purging.
+
+For UNSW-NB15, `docs/audit/unsw_nb15_audit.json` records 94,928 duplicate rows removed
+from 257,673 input rows (36.84%). The split pipeline then applies additional conflict,
+deduplication and partition rules; its current processed counts are those in the table above.
+The loader-level duplicate fraction and final split sizes describe different stages.
+
+CSE-CIC-IDS2018 records are not yet reconciled across project sources. The current processed
+partitions sum to 7,986,637 rows. `docs/audit/cic_ids2018_audit.json` reports
+`benign_frac_kept: 0.1` but also reports 2,486,278 rows written; the older prose in this
+section's history describes 9,780,124 rows, while `docs/STATUS.md` reports 1,400,893
+duplicates and the audit JSON reports 1,598,383. Until the source bundle, loader audit,
+processed partitions and checksum manifest are tied to one immutable version, the 10%
+benign-sampling claim and these totals are provisional and must not be combined.
+
+## 4.3 Labels, exclusions and feature sets
+
+The binary target is `label` (benign 0, attack 1); `attack_cat` is retained only for
+stratified reporting. Split metadata such as `source` and any `attempted_category` field
+must not enter model inputs. The XGBoost baseline's `EXCLUDE` set is reused by the MLP.
+The MLP additionally uses only the training partition to remove constant features and fit
+preprocessing. The selected full CIC-IDS2017 checkpoint contains 79 numerical features.
+The project baselines use 79 features for each improved CIC release and 42 for UNSW-NB15.
+For UNSW, `proto`, `service` and `state` are categorical in the MLP; vocabularies are learned
+from train only, index zero is reserved for unknown/missing categories, and numerical
+features are standardized using train only.
+
+The improved CIC-IDS2017 validation report documents negative extraction values in selected
+fields, including forward/backward header lengths, and motivates excluding header lengths.
+`total_tcp_flow_time` is also excluded because its provenance could not be established.
+These decisions are described in `docs/audit/cic_ids2017_feature_validation.md`.
+
+## 4.4 Dataset artefacts and shortcuts
+
+The feature validation report finds that `init_win_bytes_forward = -1` occurs in 43.1% of
+benign flows and 0% of attack flows in its CIC-IDS2017 audit population. `docs/STATUS.md`
+also reports a single-feature AUC of 0.937 and approximately 40% of CSE-CIC-IDS2018 model
+gain associated with `fwd_init_win_bytes`; these are project-reported audit/model findings,
+not causal evidence. The feature may encode capture or host-stack provenance. The implemented
+padding-and-delay attack does not change it, so it remains a potential shortcut under that
+action space. Performance must be interpreted with an ablation and cross-capture validation,
+not as evidence of general intrusion-detection ability.
+
+The improved CIC-IDS2017 report also identifies one source-level URG-feature inconsistency,
+non-zero bulk-statistics features, and a mismatch between some rules and non-TCP flows.
+Validity rules are therefore conditional on protocol where required. For CSE-CIC-IDS2018,
+the original release's 12-hour timestamps without AM/PM are not treated as a problem in the
+improved release; the project reports UTC timestamps for the improved data. The full audit
+trail is in `docs/audit/`.
+
+## 4.5 Feature controllability counts
+
+The counts depend on the feature schema and must not be conflated. The legacy
+`configs/cic2017_controllability.csv` has 77 rows: 15 free, 29 derived and 33 fixed. The
+improved CIC-IDS2017 table has 83 rows: 15 free, 30 derived and 38 fixed. The improved
+CSE-CIC-IDS2018 release shares that schema. The UNSW-NB15 table has 42 rows: 3 free,
+6 derived and 33 fixed. These counts were checked against the CSV files; they are
+engineering classifications for the implemented perturbations, not a proof of universal
+attacker capability.
+
+## 4.6 Open data-integrity work
+
+Before final analysis, reconcile the CIC-IDS2017 audit denominator and CIC-IDS2018 version,
+sampling fraction, duplicate totals and processed partition checksum. Confirm that the
+processed Parquet files match the bundle manifest used in training. Record any rare-class
+removal or retention policy per split; class-specific metrics with only a few test examples
+are descriptive and not stable estimates.

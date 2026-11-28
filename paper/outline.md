@@ -1,39 +1,36 @@
 # Evasight: paper outline
 
-Working title: Do explanations of a network intrusion detector stay stable under realistic evasion?
-Write each section in its own file (paper/03_threat_model.md, ...). Plain Markdown; LaTeX at the end.
+Working title: *Do Explanations of a Network Intrusion Detector Remain Stable Under
+Realistic Evasion?*
 
-## 1. Introduction (both)
-- Problem: NIDS models are evaded; explanations (SHAP/LIME) are trusted by analysts.
-- Question: are explanations stable under constraint-respecting evasion, and can instability flag evasion?
-- Contributions (to confirm at the end).
+`paper/manuscript.md` is the current integrated working draft. The files `02_related_work.md`
+through `05_attack.md` remain the editable section drafts; the experiment and reproducibility
+ledgers are maintained alongside them. The manuscript is not submission-ready.
 
-## 2. Related work (both)
-- Adversarial ML for NIDS with domain constraints; explainable NIDS; dataset quality studies (Engelen et al.).
+## Manuscript sections
 
-## 3. Threat model (Likhith)
-- Attacker: controls only its own (forward/source) packets; white-box access to the model; no poisoning.
-- Actions: payload padding and inter-packet delay, budget eps relative to the flow's own values.
-- Constraints: protocol semantics (flags, ports, protocol fixed), MTU/MSS, flow-meter timeouts.
-- Feature controllability: free / derived / fixed (configs/*_controllability.csv).
+1. Abstract — pending final results.
+2. Keywords.
+3. Introduction — motivate explanations as a possible complementary, not assumed, evasion signal.
+4. Motivation and problem statement.
+5. Research objectives and falsifiable hypotheses.
+6. Related work — keep only bibliographically verified citations in the draft.
+7. Threat model and problem formulation — see `03_threat_model.md`.
+8. Dataset description and preprocessing — see `04_datasets.md`; reconcile stale audit totals.
+9. Feature controllability and validity constraints — distinguish legacy 77-column and improved
+   83-column CIC-IDS2017 schemas.
+10. Detection models — XGBoost and MLP, with results separated by provenance and run type.
+11. Explainability methods — SHAP and LIME; distinguish their outputs.
+12. Adversarial perturbation methodology — see `05_attack.md`.
+13. Explanation stability metrics — planned; no stability conclusion is established.
+14. Experimental setup and reproducibility.
+15. Experimental results — see `experimental_results.md`.
+16. Ablation studies — pending.
+17. Discussion.
+18. Limitations and threats to validity.
+19. Conclusion and future work — pending full evaluation.
+20. References.
 
-## 4. Datasets and data quality (Likhith)
-- CIC-IDS2017 Improved, CSE-CIC-IDS2018 Improved (Liu et al. 2022), UNSW-NB15 (official split).
-- Leak-aware splits: conflicting-label vectors dropped, feature dedup, per-class time blocks (CIC), no vector in two partitions.
-- Findings: 2018 12-hour clock without AM/PM; header/segment rules hold only for TCP in the Improved release;
-  bulk features non-zero in Improved 2017; UNSW split counts (train 107,740 / test 55,005); metadata leakage risk (capture day).
-
-## 5. Attack method (Likhith)
-- Perturbation per dataset, derived-feature recompute, validity rules calibrated on clean train data.
-- Grid search over (pad, delay), cumulative budget; skip flows whose features cannot be kept consistent.
-
-## 6. Models and explanations (Sharath)
-- Calibrated XGBoost baselines (+ MLP), SHAP and LIME, stability metrics.
-
-## 7. Results (both)
-- Evasion per dataset and class (eps 0.1 / 1.0): 2017 93, 2018 197, UNSW 1,002 at eps 1.0.
-- 2018 shortcut: fwd_init_win_bytes carries 40% of the gain (single-feature AUC 0.937); attacker OS fingerprint, fixed in our threat model.
-- Explanation stability and instability-based detection (pending).
-
-## 8. Limitations and conclusion (both)
-- Summary-statistic features only (no packet traces); conservative choices that lower evasion; tiny classes.
+The original outline's white-box threat-model note is superseded: the implemented search uses
+attack-score access and does not read model parameters or gradients. Remaining authorship,
+citation and evidence questions are listed in `open_questions.md`.
