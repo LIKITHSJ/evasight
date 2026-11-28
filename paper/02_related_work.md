@@ -1,9 +1,37 @@
 # 2. Related work
 
-Adversarial attacks on intrusion detection. Many attacks on ML-based intrusion detectors change feature values freely and assume an attacker who knows the model or can interact with the system without limits. Apruzzese et al. (2022) argue that such threat models are unrealistic for network security and describe the capabilities an attacker actually needs. Pierazzi et al. (2020) formalise problem-space attacks, in which the attacker changes real objects and the features follow, and introduce side-effect features that change as a by-product of the attack. Their work targets Android malware; we apply the same idea to network flows, where derived features such as rates and means are the side effects. Zaro (2026) studies constrained feature-space attacks on the corrected CIC-IDS2017 and finds that 74 to 93% of the perturbed flows break relationships that CICFlowMeter guarantees, which shows why problem-space attacks are needed for flow data.
+## Problem-space adversarial machine learning
 
-Dataset quality. Engelen et al. (2021) found labelling and flow-construction errors in CIC-IDS2017 and released a corrected version, and Liu et al. (2022) extended the analysis to CSE-CIC-IDS2018 and released improved versions of both datasets. Lanvin et al. (2023) showed that such errors change reported detection results substantially. Arp et al. (2022) describe common pitfalls of machine learning in security, including data snooping and spurious correlations, which our splits are designed to avoid.
+Feature-space attacks can propose vectors that do not correspond to realizable objects.
+Pierazzi et al. formalize problem-space attacks, where an attacker changes a real object and
+the feature representation follows, including side effects of the change [1]. Evasight applies
+that framing to flow records: packet padding and timing changes are the actions, while flow
+statistics are derived consequences. The cited work concerns Android malware; it motivates
+the formulation but is not evidence that Evasight's network transformations are realistic.
 
-Explanations and their stability. SHAP (Lundberg and Lee, 2017) and LIME (Ribeiro et al., 2016) are the most widely used methods for explaining individual predictions. Slack et al. (2020) showed that both can be manipulated, and Warnecke et al. (2020) evaluated explanation methods for security tasks and found large differences in their reliability.
+## Dataset quality
 
-Explanations for detecting attacks. Fidel et al. (2020) used SHAP values computed on the internal layers of a neural network to tell adversarial inputs apart from normal ones, evaluated on image datasets. To our knowledge, no prior work tests whether explanation instability reveals evasion of flow-based intrusion detectors under realistic, problem-space constraints, which is the question we study.
+The authors of the improved CIC releases document their review of CIC-IDS2017 and
+CSE-CIC-IDS2018 and provide corrected data and supporting documentation [4]. The specific
+cleaning, split and integrity counts used here are project-local results and are recorded in
+`04_datasets.md` and `experimental_results.md`; they should not be attributed to the publication
+unless the specific claim is supported there.
+
+## Explanations
+
+SHAP presents a unified framework for additive feature-attribution explanations [2]. LIME
+approximates an individual prediction locally with an interpretable surrogate [3]. These outputs
+are not interchangeable: this study treats SHAP attribution vectors and LIME local-rule weights
+as method-specific explanations. The project's smoke test confirms that both can produce
+explanations for selected MLP examples, but it does not measure explanation stability or
+validate an instability-based evasion detector.
+
+## Scope of the literature claim
+
+The current literature review is incomplete. Earlier drafts contained author-year references to
+Apruzzese, Engelen, Lanvin, Arp, Slack, Warnecke, Fidel and Zaro without a complete, verified
+bibliography. Those citations and their associated claims are not carried forward as established
+evidence. They must be identified and checked before submission. No novelty or "first study"
+claim is made in this draft.
+
+The verified references used above are listed in `manuscript.md`.
